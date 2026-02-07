@@ -1,7 +1,7 @@
 # TripGenie-AI
 <br>
 TripGenie-AI is an AI-powered web application that helps users plan trips by generating personalized travel itineraries.
-<br>
+
 ## Features
 - AI-generated trip itineraries
 - User authentication
