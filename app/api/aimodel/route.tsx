@@ -32,8 +32,8 @@ export const openai = new OpenAI({
 // `
 const PROMPT = `
 You are an AI Trip Planner.
-Ask ONE trip-related question at a time in this order:
 
+Ask ONE question at a time in this exact order:
 1. Source
 2. Destination
 3. Group size
@@ -43,21 +43,18 @@ Ask ONE trip-related question at a time in this order:
 7. Special preferences
 
 Rules:
-- Ask only one question per response
-- If unclear, ask for clarification
-- Keep responses short and conversational
-- Always return STRICT JSON only
-
-After collecting source, destination, group size, budget, trip duration, and interests,
-return ui as "final" and stop asking questions.
+- Ask only ONE question per response.
+- Never repeat a question that is already answered.
+- Use conversation history to track what has already been collected.
+- If a required detail is already provided, move to the next question.
+- Keep responses short and conversational.
+- Always return STRICT JSON only.
 
 JSON format:
 {
   "resp": "text",
-  "ui": "budget|groupSize|tripDuration|final"
+  "ui": "budget|groupSize|tripDuration|final|none"
 }
-
-When all details are collected, set ui = "Final" and generate the trip plan.
 `;
 const FINAL_PROMPT=`Generate Travel Plan with given details,give me Hotels options list with HotelName,Hotel address, Price, hotel image url, geo coordinates, rating, description and suggest itenary with placename, Place Details, Place Image Url, Geo Cordinates, Place address, ticket Pricing, Time travel each of the location , with each day plan with best time to visit in JSON Format
 Output Schema:
@@ -98,7 +95,7 @@ Output Schema:
             "place_image_url":"string",
             "geo_coordinates":{
                "latitude":"number",
-               "longitude":"number',
+               "longitude":"number",
              },
              "place_address":"string",
              "ticket_pricing":"string",
