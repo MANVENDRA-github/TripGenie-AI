@@ -8,7 +8,7 @@ function EmptyBoxState({onSelectOption}:any) {
         <h2 className='font-bold text-2xl text-center'>
             Start planning your <strong className='text-primary'>trip</strong> using TripGenie-AI!
         </h2>
-        <p className='text-center text-gray-500 mt-2'>Get personalized travel itineraries, budget-friendly plans, and destination insights tailored to your preferences. Let TripGenie-AI handle the planning while you focus on enjoying the journey.</p>
+        <p className='text-center text-gray-500 mt-2'>Get personalized travel itineraries, budget-friendly plans, and destination suggestions tailored to your preferences. Let TripGenie-AI handle the planning while you focus on enjoying the journey.</p>
     
     <div className='flex flex-col gap-5 mt-7'>
               {suggestions.map((suggestions,index)=>(
