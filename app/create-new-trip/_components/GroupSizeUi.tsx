@@ -34,7 +34,7 @@ export const SelectTravelesList = [
 
 function GroupSizeUi({onSelectedOption}:any) {
   return (
-    <div className='grid grid-cols-2 md:grid-cols-4 gap-2 items-center mt-1'>
+    <div className='grid grid-cols-3 md:grid-cols-4 gap-2 items-center mt-1'>
         {SelectTravelesList.map((item,index)=>(
             <div key={index} className='p-3 border rounded-2xl bg-white 
             hover:border-primary cursor-pointer'
