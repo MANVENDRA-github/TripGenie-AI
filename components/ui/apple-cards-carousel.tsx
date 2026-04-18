@@ -283,8 +283,6 @@ export const BlurImage = ({
       fill={fill}
       width={width}
       height={height}
-      placeholder="blur"
-      blurDataURL="/blur-placeholder.png" // small local image
       className={cn(
         "object-cover transition-transform duration-500",
         className
