@@ -1,10 +1,12 @@
 "use client";
-//TODO :update the greoupsize ui
-import React, { useEffect, useState } from "react";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { Loader, Send } from "lucide-react";
+
+import React, { useEffect, useRef, useState, useCallback } from "react";
+import { Send } from "lucide-react";
 import axios from "axios";
+import { useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { useUser } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 
 import EmptyBoxState from "./EmptyBoxState";
 import GroupSizeUi from "./GroupSizeUi";
@@ -18,158 +20,335 @@ type Message = {
   ui?: string;
 };
 
-function ChatBox() {
+type MapMarker = {
+  lat: number;
+  lng: number;
+  label: string;
+  type?: "hotel" | "activity" | "destination";
+};
+
+type Props = {
+  onMarkersUpdate?: (markers: MapMarker[]) => void;
+};
+
+function ChatBox({ onMarkersUpdate }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [userInput, setUserInput] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [isFinal, setIsFinal] = useState<boolean>(false);
+  const [generating, setGenerating] = useState<boolean>(false);
+  const [finalTriggered, setFinalTriggered] = useState<boolean>(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const onSend = async (text?: string) => {
-    const messageText = text ?? userInput;
+  const saveTrip = useMutation(api.trips.saveTrip);
+  const { user } = useUser();
+  const router = useRouter();
 
-    if (!messageText?.trim()) return;
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
-    const newMsg: Message = {
-      role: "user",
-      content: messageText,
-    };
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, loading]);
 
-    const updatedMessages = [...messages, newMsg];
+  const onSend = useCallback(
+    async (text?: string) => {
+      const messageText = text ?? userInput;
+      if (!messageText?.trim()) return;
 
-    setMessages(updatedMessages);
-    setUserInput("");
-    setLoading(true);
+      const newMsg: Message = { role: "user", content: messageText };
+      const updatedMessages = [...messages, newMsg];
 
-    try {
-      const result = await axios.post("/api/aimodel", {
-        messages: updatedMessages,
-        isFinal: isFinal,
-      });
+      setMessages(updatedMessages);
+      setUserInput("");
+      setLoading(true);
 
-      if (!isFinal) {
+      try {
+        const result = await axios.post("/api/aimodel", {
+          messages: updatedMessages,
+          isFinal: isFinal,
+        });
+
+        if (result?.data?.error) {
+          setMessages((prev) => [
+            ...prev,
+            { role: "assistant", content: `Error: ${result.data.error}. Please try again.` },
+          ]);
+          setLoading(false);
+          return;
+        }
+
+        if (isFinal && result?.data?.trip_plan) {
+          const tripData = result.data;
+          const plan = tripData.trip_plan;
+
+          try {
+            const tripId = await saveTrip({
+              userId: user?.primaryEmailAddress?.emailAddress ?? "",
+              tripData: JSON.stringify(tripData),
+              destination: plan.destination ?? "",
+              origin: plan.origin ?? "",
+              days: parseInt(plan.duration) || 3,
+              budget: plan.budget ?? "",
+              groupSize: plan.group_size ?? "",
+            });
+
+            const markers: MapMarker[] = [];
+            plan.hotels?.forEach((h: any) => {
+              if (h.geo_coordinates?.latitude && h.geo_coordinates?.longitude) {
+                markers.push({
+                  lat: h.geo_coordinates.latitude,
+                  lng: h.geo_coordinates.longitude,
+                  label: h.hotel_name,
+                  type: "hotel",
+                });
+              }
+            });
+            plan.itinerary?.forEach((day: any) => {
+              day.activities?.forEach((a: any) => {
+                if (a.geo_coordinates?.latitude && a.geo_coordinates?.longitude) {
+                  markers.push({
+                    lat: a.geo_coordinates.latitude,
+                    lng: a.geo_coordinates.longitude,
+                    label: a.place_name,
+                    type: "activity",
+                  });
+                }
+              });
+            });
+            onMarkersUpdate?.(markers);
+            router.push(`/trip/${tripId}`);
+          } catch (err) {
+            console.error("Failed to save trip:", err);
+            setGenerating(false);
+            setMessages((prev) => [
+              ...prev,
+              {
+                role: "assistant",
+                content: "Trip generated but failed to save. Please try again.",
+              },
+            ]);
+          }
+        } else if (isFinal && !result?.data?.trip_plan) {
+          // Final was sent but response didn't contain trip_plan
+          console.error("Final response missing trip_plan:", result.data);
+          setGenerating(false);
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: "assistant",
+              content: "Failed to generate itinerary. Please try creating a new trip.",
+            },
+          ]);
+        } else {
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: "assistant",
+              content: result?.data?.resp ?? "",
+              ui: result?.data?.ui,
+            },
+          ]);
+        }
+      } catch (error: any) {
+        console.error("API Error:", error);
+        setGenerating(false);
         setMessages((prev) => [
           ...prev,
           {
             role: "assistant",
-            content: result?.data?.resp,
-            ui: result?.data?.ui,
+            content: "Something went wrong. Please try again.",
           },
         ]);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("API Error:", error);
-    } finally {
-      setLoading(false);
+    },
+    [messages, userInput, isFinal, user, saveTrip, router, onMarkersUpdate]
+  );
+
+  // Only render interactive UI for the LAST assistant message that has a UI hint
+  const getLastUiIndex = () => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === "assistant" && messages[i].ui && messages[i].ui !== "none") {
+        return i;
+      }
     }
+    return -1;
   };
 
-  const RenderGenerativeUI = (ui: string) => {
-    if (ui === "budget") {
-      return (
-        <BudgetUi
-          onSelectedOption={(v: string) => {
-            onSend(v);
-          }}
-        />
-      );
-    }
+  const lastUiIndex = getLastUiIndex();
 
-    if (ui === "groupSize") {
-      return (
-        <GroupSizeUi
-          onSelectedOption={(v: string) => {
-            onSend(v);
-          }}
-        />
-      );
-    }
+  const RenderGenerativeUI = (ui: string, isLatest: boolean) => {
+    // Only render interactive components for the latest UI message
+    if (!isLatest) return null;
 
-    if (ui === "tripDuration") {
-      return (
-        <SelectDaysUi
-          onSelectedOption={(v: string) => {
-            onSend(v);
-          }}
-        />
-      );
-    }
-
-    if (ui === "final") {
-      return <FinalUi viewTrip={() => console.log("View Trip")} />;
-    }
-
+    if (ui === "budget") return <BudgetUi onSelectedOption={(v: string) => onSend(v)} />;
+    if (ui === "groupSize") return <GroupSizeUi onSelectedOption={(v: string) => onSend(v)} />;
+    if (ui === "tripDuration") return <SelectDaysUi onSelectedOption={(v: string) => onSend(v)} />;
+    if (ui === "final") return <FinalUi generating={generating} />;
     return null;
   };
 
-  // Safe final auto-trigger
+  // Trigger final generation ONCE when AI sends "final" UI
   useEffect(() => {
+    if (finalTriggered) return;
     const lastMsg = messages[messages.length - 1];
-
-    if (lastMsg?.ui === "final" && !isFinal) {
+    if (lastMsg?.role === "assistant" && lastMsg?.ui === "final") {
+      setFinalTriggered(true);
       setIsFinal(true);
-      onSend("Ok, Great");
+      setGenerating(true);
+      // Small delay to prevent race condition
+      setTimeout(() => {
+        const confirmMsg: Message = { role: "user", content: "Ok, Great! Generate my trip." };
+        setMessages((prev) => [...prev, confirmMsg]);
+        setLoading(true);
+
+        axios
+          .post("/api/aimodel", {
+            messages: [...messages, confirmMsg],
+            isFinal: true,
+          })
+          .then((result) => {
+            if (result?.data?.trip_plan) {
+              const tripData = result.data;
+              const plan = tripData.trip_plan;
+
+              saveTrip({
+                userId: user?.primaryEmailAddress?.emailAddress ?? "",
+                tripData: JSON.stringify(tripData),
+                destination: plan.destination ?? "",
+                origin: plan.origin ?? "",
+                days: parseInt(plan.duration) || 3,
+                budget: plan.budget ?? "",
+                groupSize: plan.group_size ?? "",
+              })
+                .then((tripId) => {
+                  const markers: MapMarker[] = [];
+                  plan.hotels?.forEach((h: any) => {
+                    if (h.geo_coordinates?.latitude && h.geo_coordinates?.longitude) {
+                      markers.push({
+                        lat: h.geo_coordinates.latitude,
+                        lng: h.geo_coordinates.longitude,
+                        label: h.hotel_name,
+                        type: "hotel",
+                      });
+                    }
+                  });
+                  plan.itinerary?.forEach((day: any) => {
+                    day.activities?.forEach((a: any) => {
+                      if (a.geo_coordinates?.latitude && a.geo_coordinates?.longitude) {
+                        markers.push({
+                          lat: a.geo_coordinates.latitude,
+                          lng: a.geo_coordinates.longitude,
+                          label: a.place_name,
+                          type: "activity",
+                        });
+                      }
+                    });
+                  });
+                  onMarkersUpdate?.(markers);
+                  router.push(`/trip/${tripId}`);
+                })
+                .catch((err) => {
+                  console.error("Save failed:", err);
+                  setGenerating(false);
+                  setMessages((prev) => [
+                    ...prev,
+                    { role: "assistant", content: "Failed to save trip. Try again." },
+                  ]);
+                });
+            } else {
+              console.error("No trip_plan in response:", result.data);
+              setGenerating(false);
+              setMessages((prev) => [
+                ...prev,
+                { role: "assistant", content: "Failed to generate itinerary. Please try again." },
+              ]);
+            }
+          })
+          .catch((err) => {
+            console.error("Final API error:", err);
+            setGenerating(false);
+            setMessages((prev) => [
+              ...prev,
+              { role: "assistant", content: "Error generating trip. Please try again." },
+            ]);
+          })
+          .finally(() => {
+            setLoading(false);
+          });
+      }, 300);
     }
-  }, [messages]);
+  }, [messages, finalTriggered]);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      if (!loading && !generating) onSend();
+    }
+  };
 
   return (
-    <div className="h-[80vh] flex flex-col">
-      {/* Empty State */}
-      {messages.length === 0 && (
-        <EmptyBoxState
-          onSelectOption={(v: string) => {
-            onSend(v);
-          }}
-        />
+    <div className="chat-container">
+      {messages.length === 0 && !loading && (
+        <div className="chat-empty-state">
+          <EmptyBoxState onSelectOption={(v: string) => onSend(v)} />
+        </div>
       )}
 
-      {/* Chat Messages */}
-      <section className="flex-1 overflow-y-auto p-4">
+      <div className="chat-messages">
         {messages.map((msg, index) =>
           msg.role === "user" ? (
-            <div className="flex justify-end mt-2" key={index}>
-              <div className="max-w-lg bg-gray-200 text-black px-4 py-2 rounded-lg">
-                {msg.content}
-              </div>
+            <div className="chat-msg-user" key={index}>
+              <div className="chat-bubble">{msg.content}</div>
             </div>
           ) : (
-            <div className="flex justify-start mt-2" key={index}>
-              <div className="max-w-lg bg-gray-200 text-black px-4 py-2 rounded-lg">
+            <div className="chat-msg-ai" key={index}>
+              <div className="chat-bubble">
                 {msg.ui !== "final" && msg.content}
-                {msg.ui && RenderGenerativeUI(msg.ui)}
+                {msg.ui &&
+                  msg.ui !== "none" &&
+                  RenderGenerativeUI(msg.ui, index === lastUiIndex)}
               </div>
             </div>
           )
         )}
 
         {loading && (
-          <div className="flex justify-start mt-2">
-            <div className="max-w-lg bg-gray-200 text-black px-4 py-2 rounded-lg">
-              <Loader className="animate-spin" />
+          <div className="chat-msg-ai">
+            <div className="chat-bubble">
+              <div className="chat-loading">
+                <span />
+                <span />
+                <span />
+              </div>
             </div>
           </div>
         )}
-      </section>
+        <div ref={messagesEndRef} />
+      </div>
 
-      {/* Input Box */}
-      <section>
-        <div className="border rounded-2xl p-4 relative">
-          <Textarea
-            placeholder="Type your message here..."
-            className="w-full h-28 bg-transparent border-none focus-visible:ring-0 shadow-none resize-none"
-            onChange={(event) => setUserInput(event.target.value)}
+      <div className="chat-input-area">
+        <div className="chat-input-wrap">
+          <input
+            type="text"
+            placeholder={generating ? "Generating your trip..." : "Type your message..."}
             value={userInput}
+            onChange={(e) => setUserInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={loading || generating}
           />
-
-          <Button
-            size="icon"
-            className="absolute bottom-6 right-6 cursor-pointer"
+          <button
+            className="chat-send-btn"
             onClick={() => onSend()}
-            disabled={loading}
+            disabled={loading || generating || !userInput.trim()}
           >
             <Send className="w-4 h-4" />
-          </Button>
+          </button>
         </div>
-      </section>
+      </div>
     </div>
   );
 }

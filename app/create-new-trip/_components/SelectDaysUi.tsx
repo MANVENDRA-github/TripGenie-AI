@@ -26,7 +26,7 @@ function SelectDaysUi({ onSelectedOption }: Props) {
   };
 
   return (
-    <div className="bg-white rounded-xl p-5 mt-4 text-center max-w-sm">
+    <div className="bg-card text-card-foreground border border-border rounded-xl p-5 mt-4 text-center max-w-sm shadow-sm mx-auto">
       
       <h2 className="font-semibold text-lg mb-4">
         How many days do you want to travel?
@@ -58,7 +58,7 @@ function SelectDaysUi({ onSelectedOption }: Props) {
       </div>
 
       <Button
-        className="bg-primary text-white px-6"
+        className="bg-blue-600 hover:bg-blue-700 text-white px-6 w-full max-w-[200px]"
         onClick={handleConfirm}
       >
         Confirm

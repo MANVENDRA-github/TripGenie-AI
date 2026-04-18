@@ -1,139 +1,127 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-
-export const openai = new OpenAI({
+const openai = new OpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
   apiKey: process.env.OPENROUTER_API_KEY,
-  
 });
 
-// const PROMPT=`You are an AI Trip Planner Agent. Your goal is to help the user plan a trip by asking one relevant trip-related question at a time.
-// Only ask questions about the following details in order, and wait for the user's answer before asking the next:
+const PROMPT = `You are an AI Trip Planner assistant. You help users plan trips step by step.
 
-// 1.Starting location (source)
-// 2.Destination city or country
-// 3.Group size (Solo, Couple, Family, Friends)
-// 4.Budget (Low, Medium, High)
-// 5.Trip duration (number of days)
-// 6.Travel interests (e.g., adventure, sightseeing, cultural, food, nightlife, relaxation)
-// 7.Special requirements or preferences (if any)
+STRICT RULES:
+1. Ask ONLY ONE question per response.
+2. Follow this EXACT order — skip any step that's already answered in the conversation:
+   Step 1: Ask for source/origin city
+   Step 2: Ask for destination city
+   Step 3: Ask for group size (respond with ui:"groupSize")
+   Step 4: Ask for budget level (respond with ui:"budget")
+   Step 5: Ask for trip duration/days (respond with ui:"tripDuration")
+   Step 6: Confirm all details and say you'll generate the trip (respond with ui:"final")
 
-// Do not ask multiple questions at once, and never ask irrelevant questions.
-// If any answer is missing or unclear, politely ask the user to clarify before proceeding.
-// Always maintain a conversational, interactive style while asking questions.
-// Along with response also send which ui component to display for generative UI for example 'budget/groupSize/TripDuration/Final', where Final means AI generating content.
-// Once all required information is collected, generate and return a strict JSON response only (no explanations or extra text) with following JSON schema:
+3. CRITICAL: Before asking a question, CHECK the full conversation history. If a detail was already provided, DO NOT ask for it again. Move to the next unanswered step.
+4. NEVER show the same UI component twice. If groupSize was already selected, do NOT return ui:"groupSize" again. Same for budget and tripDuration.
+5. After group size, budget, AND duration are all collected, go directly to step 6 (final).
+6. Do NOT ask about interests or special preferences — skip them.
+7. DO NOT explicitly ask "how many people". Just map the companion selection (Just me=1, A couple=2, Family=4-5, Friends=2-4) to group_size in the final stage.
+8. Keep responses short and friendly.
 
-// {
-// resp: 'Text Resp',
-// ui: 'budget/groupSize/TripDuration/Final'
-// }
-// `
-const PROMPT = `
-You are an AI Trip Planner.
-
-Ask ONE question at a time in this exact order:
-1. Source
-2. Destination
-3. Group size
-4. Budget
-5. Trip duration
-6. Interests
-7. Special preferences
-
-Rules:
-- Ask only ONE question per response.
-- Never repeat a question that is already answered.
-- Use conversation history to track what has already been collected.
-- If a required detail is already provided, move to the next question.
-- Keep responses short and conversational.
-- Always return STRICT JSON only.
-
-JSON format:
+ALWAYS return valid JSON in this exact format:
 {
-  "resp": "text",
-  "ui": "budget|groupSize|tripDuration|final|none"
+  "resp": "your message text",
+  "ui": "groupSize" | "budget" | "tripDuration" | "final" | "none"
 }
+
+Only use "none" for steps 1 and 2 (text-based questions).
 `;
-const FINAL_PROMPT=`Generate Travel Plan with given details,give me Hotels options list with HotelName,Hotel address, Price, hotel image url, geo coordinates, rating, description and suggest itenary with placename, Place Details, Place Image Url, Geo Cordinates, Place address, ticket Pricing, Time travel each of the location , with each day plan with best time to visit in JSON Format
-Output Schema:
+
+const FINAL_PROMPT = `Generate a comprehensive travel plan based on the conversation. Include:
+- 3-4 hotel recommendations with real names, addresses, approximate prices, geo coordinates, ratings, and descriptions
+- Day-by-day itinerary with real place names, descriptions, geo coordinates, addresses, ticket pricing estimates, time to spend, and best time to visit
+
+CRITICAL RULES:
+1. Return ONLY valid JSON. No markdown, no backticks, no explanations. Just the JSON object.
+2. ALL prices MUST use the Indian Rupee currency symbol (₹). Do NOT use dollars or other currencies.
+
+JSON Schema:
 {
-  "trip_plan":{
-     "destination":"string",
-     "duration":"string",
-     "origin":"string",
-     "budget":"string",
-     "group_size":"string",
-     "hotels":[
-       
+  "trip_plan": {
+    "destination": "string",
+    "duration": "string (e.g. '4 days')",
+    "origin": "string",
+    "budget": "string",
+    "group_size": "string",
+    "hotels": [
       {
-         "hotel_name":"string",
-         "hotel_address":"string",
-         "price_per_night":"string",
-         "hotel_image_url":"string",
-         "geo_cordinates":{
-           "latitude":"number",
-           "longitude":"number",
-           }
-          "rating":"number",
-          "description":"string"
-
-       }
-
-
-      ],
-     "itinerary":[
-       {
-          "day":"number",
-          "day_plan":"string",
-          "best_time_to_visit_day":"string",
-          "activities":[
-           {
-	    "place_name":"string",
-            "place_details":"string",
-            "place_image_url":"string",
-            "geo_coordinates":{
-               "latitude":"number",
-               "longitude":"number",
-             },
-             "place_address":"string",
-             "ticket_pricing":"string",
-	     "time_travel_each_location":"string",
-	     "best_time_to_visit":"string" 
-            }            
-           ]
-        }
-     ]		
-   
-   }
-
+        "hotel_name": "string",
+        "hotel_address": "string",
+        "price_per_night": "string (e.g. '$120')",
+        "geo_coordinates": { "latitude": 0.0, "longitude": 0.0 },
+        "rating": 4.5,
+        "description": "string (1-2 sentences)"
+      }
+    ],
+    "itinerary": [
+      {
+        "day": 1,
+        "day_plan": "string (brief overview)",
+        "best_time_to_visit_day": "string",
+        "activities": [
+          {
+            "place_name": "string",
+            "place_details": "string (2-3 sentences)",
+            "geo_coordinates": { "latitude": 0.0, "longitude": 0.0 },
+            "place_address": "string",
+            "ticket_pricing": "string",
+            "time_travel_each_location": "string (e.g. '2-3 hours')",
+            "best_time_to_visit": "string"
+          }
+        ]
+      }
+    ]
+  }
 }`;
 
 export async function POST(req: NextRequest) {
-    const { messages,isFinal } = await req.json();
+  const { messages, isFinal } = await req.json();
 
+  try {
+    const completion = await openai.chat.completions.create({
+      model: 'openai/gpt-4.1-mini',
+      response_format: { type: 'json_object' },
+      messages: [
+        {
+          role: 'system',
+          content: isFinal ? FINAL_PROMPT : PROMPT,
+        },
+        ...messages,
+      ],
+      max_tokens: isFinal ? 6000 : 800,
+    });
 
-    try{
-        const completion = await openai.chat.completions.create({
-        model: 'openai/gpt-4.1-mini',
-        response_format: { type: 'json_object' },
-        messages: [
-            {
-            role: 'system',
-            content:isFinal ? FINAL_PROMPT : PROMPT,
-            },
-            ...messages
-            ],
-            max_tokens: 1500,
-        });
-        console.log(completion.choices[0].message);
+    const message = completion.choices[0].message;
+    const rawContent = message.content ?? '{}';
 
-        const message = completion.choices[0].message;
-
-        return NextResponse.json(JSON.parse(message.content ?? ''));
+    let parsed;
+    try {
+      parsed = JSON.parse(rawContent);
+    } catch {
+      const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        parsed = JSON.parse(jsonMatch[0]);
+      } else {
+        return NextResponse.json(
+          { error: 'AI returned malformed response' },
+          { status: 500 }
+        );
+      }
     }
-    catch(e){
-        return NextResponse.json(e);  
-    }
+
+    return NextResponse.json(parsed);
+  } catch (e: any) {
+    console.error('AI API Error:', e);
+    return NextResponse.json(
+      { error: 'Failed to generate response', details: e.message },
+      { status: 500 }
+    );
+  }
 }
