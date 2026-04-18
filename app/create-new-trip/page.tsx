@@ -1,17 +1,27 @@
-import React from 'react'
-import Chatbox from './_components/ChatBox'
+"use client";
 
-function CreateNewTrip() {
+import React, { useState } from "react";
+import ChatBox from "./_components/ChatBox";
+import TripMap from "./_components/TripMap";
+
+type MapMarker = {
+  lat: number;
+  lng: number;
+  label: string;
+  type?: "hotel" | "activity" | "destination";
+};
+
+export default function CreateNewTrip() {
+  const [markers, setMarkers] = useState<MapMarker[]>([]);
+
   return (
-    <div className='grid grid-cols-1 md:grid-cols-2 gap-5 p-10'>
-        <div>
-            <Chatbox />
-        </div>
-        <div>
-            Map and trip plan display
-        </div>
+    <div className="planner-layout">
+      <div className="planner-chat-panel">
+        <ChatBox onMarkersUpdate={setMarkers} />
+      </div>
+      <div className="planner-map-panel">
+        <TripMap markers={markers} />
+      </div>
     </div>
-  )
+  );
 }
-
-export default CreateNewTrip
