@@ -13,6 +13,16 @@ const TripMapInner = dynamic(
   { ssr: false, loading: () => <div className="trip-map-container"><div className="page-loader"><div className="spinner" /></div></div> }
 );
 
+const FALLBACK_HOTEL_IMAGES = [
+  "https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=600&q=80",
+  "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=600&q=80",
+  "https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=600&q=80",
+  "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=600&q=80",
+  "https://images.unsplash.com/photo-1541971875076-8f970d573be6?auto=format&fit=crop&w=600&q=80",
+  "https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?auto=format&fit=crop&w=600&q=80",
+  "https://images.unsplash.com/photo-1564501049412-61c2a3083791?auto=format&fit=crop&w=600&q=80"
+];
+
 type MapMarker = {
   lat: number;
   lng: number;
@@ -145,7 +155,15 @@ export default function TripPage() {
           <div className="hotels-grid">
             {plan.hotels.map((hotel: any, i: number) => (
               <div key={i} className="hotel-card">
-                <div className="hotel-img">🏨</div>
+                <div 
+                  className="hotel-img"
+                  style={{
+                    backgroundImage: `url(${FALLBACK_HOTEL_IMAGES[i % FALLBACK_HOTEL_IMAGES.length]})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat'
+                  }}
+                ></div>
                 <div className="hotel-info">
                   <h3 className="hotel-name">{hotel.hotel_name}</h3>
                   <p className="hotel-address">{hotel.hotel_address}</p>
