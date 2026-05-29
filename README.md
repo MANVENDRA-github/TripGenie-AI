@@ -32,4 +32,4 @@ TripGenie-AI is an AI-powered web application that helps users plan trips by gen
 - Generate a trip plan
 - View itinerary and map
 ---
-
+<
