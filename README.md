@@ -8,7 +8,7 @@ TripGenie-AI is an AI-powered web application that helps users plan trips by gen
 - Destination search
 - Interactive maps
 - Save and manage trips
-
+---
 ## Tech Stack
 - Next.js
 - React
