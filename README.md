@@ -19,7 +19,7 @@ TripGenie-AI is an AI-powered web application that helps users plan trips by gen
 - Mapbox
 - Convex
 - Clerk
-
+---
 ## Setup
 1. Clone the repository
 2. Install dependencies using `npm install`
