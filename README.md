@@ -25,7 +25,7 @@ TripGenie-AI is an AI-powered web application that helps users plan trips by gen
 2. Install dependencies using `npm install`
 3. Add required environment variables
 4. Run the project using `npm run dev`
-
+---
 ## Usage
 - Sign up or log in
 - Enter destination details
