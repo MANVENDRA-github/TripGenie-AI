@@ -1,45 +1,31 @@
-import React from 'react'
+import React from "react";
+import { Wallet, Coins, Gem } from "lucide-react";
 
 export const SelectBudgetOptions = [
-  {
-    id: 1,
-    title: 'Cheap',
-    desc: 'Stay conscious of costs',
-    icon: '💸',
-    color: 'bg-green-100 text-green-600',
-  },
-  {
-    id: 2,
-    title: 'Moderate',
-    desc: 'Keep cost on the average side',
-    icon: '💰',
-    color: 'bg-yellow-100 text-yellow-600',
-  },
-  {
-    id: 3,
-    title: 'Luxury',
-    desc: "Don't worry about cost",
-    icon: '💎',
-    color: 'bg-purple-100 text-purple-600',
-  },
+  { id: 1, title: "Cheap", desc: "Stay conscious of costs", icon: Wallet },
+  { id: 2, title: "Moderate", desc: "Keep cost on the average side", icon: Coins },
+  { id: 3, title: "Luxury", desc: "Don't worry about cost", icon: Gem },
 ];
 
-
-function BudgetUi({onSelectedOption}:any) {
+function BudgetUi({ onSelectedOption }: any) {
   return (
-    <div className='grid grid-cols-3 md:grid-cols-3 gap-2 items-center mt-1'>
-            {SelectBudgetOptions.map((item,index)=>(
-                <div key={index} className='p-3 border border-border rounded-2xl bg-card text-card-foreground shadow-sm 
-                hover:border-blue-500 cursor-pointer flex flex-col items-center text-center transition-colors'
-                onClick={()=>onSelectedOption(item.title+":"+item.desc)}
-                >
-                    <div className={'text-3xl p-3 rounded-full '+item.color}>{item.icon}</div>
-                    <h2 className='text-lg font-semibold mt-2'>{item.title}</h2>
-                    <p className='text-sm text-gray-500'>{item.desc}</p>
-                </div>
-            ))}
-        </div>
-  )
+    <div className="gen-grid gen-grid--3">
+      {SelectBudgetOptions.map((item, index) => {
+        const Icon = item.icon;
+        return (
+          <div
+            key={index}
+            className="gen-card"
+            onClick={() => onSelectedOption(item.title + ":" + item.desc)}
+          >
+            <Icon className="w-5 h-5 gen-card-icon" />
+            <h2 className="gen-card-title">{item.title}</h2>
+            <p className="gen-card-desc">{item.desc}</p>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
-export default BudgetUi
+export default BudgetUi;

@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 const TripMapInner = dynamic(() => import("./TripMapInner"), {
   ssr: false,
   loading: () => (
-    <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "#f3f4f6" }}>
+    <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--paper-deep)" }}>
       <div className="spinner" />
     </div>
   ),

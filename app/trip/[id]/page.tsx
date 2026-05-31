@@ -5,12 +5,33 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useParams } from "next/navigation";
 import { Id } from "@/convex/_generated/dataModel";
-import { Calendar, MapPin, Users, Wallet, Clock, Ticket, Star, Building2 } from "lucide-react";
+import {
+  Calendar,
+  MapPin,
+  Users,
+  Wallet,
+  Clock,
+  Ticket,
+  Star,
+  Building2,
+  Sunrise,
+  Search,
+  AlertTriangle,
+} from "lucide-react";
 import dynamic from "next/dynamic";
 
 const TripMapInner = dynamic(
   () => import("@/app/create-new-trip/_components/TripMapInner"),
-  { ssr: false, loading: () => <div className="trip-map-container"><div className="page-loader"><div className="spinner" /></div></div> }
+  {
+    ssr: false,
+    loading: () => (
+      <div className="trip-map-container">
+        <div className="page-loader">
+          <div className="spinner" />
+        </div>
+      </div>
+    ),
+  }
 );
 
 const FALLBACK_HOTEL_IMAGES = [
@@ -20,7 +41,7 @@ const FALLBACK_HOTEL_IMAGES = [
   "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=600&q=80",
   "https://images.unsplash.com/photo-1541971875076-8f970d573be6?auto=format&fit=crop&w=600&q=80",
   "https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?auto=format&fit=crop&w=600&q=80",
-  "https://images.unsplash.com/photo-1564501049412-61c2a3083791?auto=format&fit=crop&w=600&q=80"
+  "https://images.unsplash.com/photo-1564501049412-61c2a3083791?auto=format&fit=crop&w=600&q=80",
 ];
 
 type MapMarker = {
@@ -50,11 +71,15 @@ export default function TripPage() {
     return (
       <div className="trip-page">
         <div className="empty-state">
-          <div className="empty-state-icon">🔍</div>
+          <div className="empty-state-icon">
+            <Search className="w-6 h-6" />
+          </div>
           <h2 className="empty-state-title">Trip not found</h2>
-          <p className="empty-state-desc">This trip may have been deleted or the link is invalid.</p>
-          <a href="/my-trips" className="header-btn-primary" style={{ textDecoration: "none" }}>
-            Back to My Trips
+          <p className="empty-state-desc">
+            This trip may have been deleted, or the link is invalid.
+          </p>
+          <a href="/my-trips" className="header-btn-primary">
+            Back to my trips
           </a>
         </div>
       </div>
@@ -68,7 +93,9 @@ export default function TripPage() {
     return (
       <div className="trip-page">
         <div className="empty-state">
-          <div className="empty-state-icon">⚠️</div>
+          <div className="empty-state-icon">
+            <AlertTriangle className="w-6 h-6" />
+          </div>
           <h2 className="empty-state-title">Error loading trip</h2>
           <p className="empty-state-desc">Trip data appears to be corrupted.</p>
         </div>
@@ -81,7 +108,9 @@ export default function TripPage() {
     return (
       <div className="trip-page">
         <div className="empty-state">
-          <div className="empty-state-icon">⚠️</div>
+          <div className="empty-state-icon">
+            <AlertTriangle className="w-6 h-6" />
+          </div>
           <h2 className="empty-state-title">Invalid trip data</h2>
         </div>
       </div>
@@ -115,12 +144,15 @@ export default function TripPage() {
 
   return (
     <div className="trip-page">
-      {/* Trip Header */}
-      <div className="trip-header-card">
+      {/* Masthead */}
+      <header className="trip-header-card">
+        <div className="trip-kicker">Your itinerary</div>
         <div className="trip-route">
           <span className="trip-route-city">{plan.origin || trip.origin}</span>
           <span className="trip-route-arrow">→</span>
-          <span className="trip-route-city">{plan.destination || trip.destination}</span>
+          <span className="trip-route-city">
+            {plan.destination || trip.destination}
+          </span>
         </div>
         <div className="trip-meta">
           <span className="trip-meta-item">
@@ -136,7 +168,7 @@ export default function TripPage() {
             {plan.group_size || trip.groupSize}
           </span>
         </div>
-      </div>
+      </header>
 
       {/* Map */}
       {markers.length > 0 && (
@@ -149,33 +181,45 @@ export default function TripPage() {
       {plan.hotels && plan.hotels.length > 0 && (
         <section>
           <h2 className="trip-section-title">
-            <Building2 className="w-5 h-5 text-indigo-500" />
-            Hotel Recommendations
+            <Building2 className="w-5 h-5" />
+            Where to stay
           </h2>
           <div className="hotels-grid">
             {plan.hotels.map((hotel: any, i: number) => (
               <div key={i} className="hotel-card">
-                <div 
+                <div
                   className="hotel-img"
                   style={{
-                    backgroundImage: `url(${FALLBACK_HOTEL_IMAGES[i % FALLBACK_HOTEL_IMAGES.length]})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    backgroundRepeat: 'no-repeat'
+                    backgroundImage: `url(${
+                      FALLBACK_HOTEL_IMAGES[i % FALLBACK_HOTEL_IMAGES.length]
+                    })`,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                    backgroundRepeat: "no-repeat",
                   }}
-                ></div>
+                />
                 <div className="hotel-info">
                   <h3 className="hotel-name">{hotel.hotel_name}</h3>
                   <p className="hotel-address">{hotel.hotel_address}</p>
                   {hotel.description && (
-                    <p style={{ fontSize: "0.85rem", color: "#6b7280", marginBottom: "0.75rem", lineHeight: 1.5 }}>
+                    <p
+                      style={{
+                        fontSize: "0.85rem",
+                        color: "var(--ink-70)",
+                        marginBottom: "0.75rem",
+                        lineHeight: 1.55,
+                      }}
+                    >
                       {hotel.description}
                     </p>
                   )}
                   <div className="hotel-meta">
-                    <span className="hotel-price">{hotel.price_per_night}/night</span>
+                    <span className="hotel-price">
+                      {hotel.price_per_night}
+                      <span>/night</span>
+                    </span>
                     <span className="hotel-rating">
-                      <Star className="w-4 h-4" fill="#eab308" />
+                      <Star className="w-4 h-4" fill="currentColor" />
                       {hotel.rating}
                     </span>
                   </div>
@@ -190,8 +234,8 @@ export default function TripPage() {
       {plan.itinerary && plan.itinerary.length > 0 && (
         <section>
           <h2 className="trip-section-title">
-            <Calendar className="w-5 h-5 text-indigo-500" />
-            Day-by-Day Itinerary
+            <Calendar className="w-5 h-5" />
+            Day by day
           </h2>
 
           {plan.itinerary.map((day: any, dayIndex: number) => (
@@ -199,14 +243,12 @@ export default function TripPage() {
               <div className="day-header">
                 <span className="day-badge">Day {day.day}</span>
                 {day.best_time_to_visit_day && (
-                  <span className="day-best-time">🌤 Best Time: {day.best_time_to_visit_day}</span>
+                  <span className="day-best-time">
+                    Best time · {day.best_time_to_visit_day}
+                  </span>
                 )}
               </div>
-              {day.day_plan && (
-                <p style={{ fontSize: "0.9rem", color: "#6b7280", marginBottom: "1rem", marginLeft: "2rem" }}>
-                  {day.day_plan}
-                </p>
-              )}
+              {day.day_plan && <p className="day-plan-text">{day.day_plan}</p>}
 
               <div className="activities-timeline">
                 {day.activities?.map((activity: any, actIdx: number) => (
@@ -229,7 +271,8 @@ export default function TripPage() {
                         )}
                         {activity.best_time_to_visit && (
                           <span className="activity-chip">
-                            🌅 {activity.best_time_to_visit}
+                            <Sunrise className="w-3.5 h-3.5" />
+                            {activity.best_time_to_visit}
                           </span>
                         )}
                         {activity.place_address && (

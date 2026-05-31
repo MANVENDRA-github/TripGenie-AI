@@ -1,52 +1,32 @@
-import React from 'react'
+import React from "react";
+import { User, Heart, Home, Users } from "lucide-react";
 
 export const SelectTravelesList = [
-  {
-    id: 1,
-    title: 'Just Me',
-    desc: 'A sole traveler in exploration',
-    icon: '✈️',
-    people: '1',
-  },
-  {
-    id: 2,
-    title: 'A Couple',
-    desc: 'Two travelers in tandem',
-    icon: '🥂',
-    people: '2 People',
-  },
-  {
-    id: 3,
-    title: 'Family',
-    desc: 'A group of adventurers',
-    icon: '🏡',
-    people: '3 to 5 People',
-  },
-  {
-    id: 4,
-    title: 'Friends',
-    desc: 'A bunch of thrill-seekers',
-    icon: '⛺',
-    people: '5 to 10 People',
-  },
-]
+  { id: 1, title: "Just Me", desc: "A sole traveler", icon: User, people: "1" },
+  { id: 2, title: "A Couple", desc: "Two in tandem", icon: Heart, people: "2 People" },
+  { id: 3, title: "Family", desc: "A small crew", icon: Home, people: "3 to 5 People" },
+  { id: 4, title: "Friends", desc: "Thrill-seekers", icon: Users, people: "5 to 10 People" },
+];
 
-
-function GroupSizeUi({onSelectedOption}:any) {
+function GroupSizeUi({ onSelectedOption }: any) {
   return (
-    <div className='grid grid-cols-3 md:grid-cols-4 gap-2 items-center mt-1'>
-        {SelectTravelesList.map((item,index)=>(
-            <div key={index} className='p-3 border border-border rounded-2xl bg-card text-card-foreground shadow-sm 
-            hover:border-blue-500 cursor-pointer flex flex-col items-center text-center transition-colors'
+    <div className="gen-grid gen-grid--4">
+      {SelectTravelesList.map((item, index) => {
+        const Icon = item.icon;
+        return (
+          <div
+            key={index}
+            className="gen-card"
             onClick={() => onSelectedOption(item.title)}
-            >
-                <div className="text-3xl mb-2">{item.icon}</div>
-                <h2 className="font-semibold text-sm">{item.title}</h2>
-                <p className="text-xs text-muted-foreground mt-1">{item.desc}</p>
-            </div>
-        ))}
+          >
+            <Icon className="w-5 h-5 gen-card-icon" />
+            <h2 className="gen-card-title">{item.title}</h2>
+            <p className="gen-card-desc">{item.desc}</p>
+          </div>
+        );
+      })}
     </div>
-  )
+  );
 }
 
-export default GroupSizeUi
+export default GroupSizeUi;

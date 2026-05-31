@@ -5,7 +5,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
-import { Calendar, MapPin, Users, Wallet, Plus, Trash2 } from "lucide-react";
+import { Calendar, MapPin, Users, Wallet, Plus, Trash2, Plane } from "lucide-react";
 import { Id } from "@/convex/_generated/dataModel";
 
 export default function MyTripsPage() {
@@ -63,13 +63,15 @@ export default function MyTripsPage() {
 
       {trips.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-state-icon">✈️</div>
-          <h2 className="empty-state-title text-foreground">No trips yet</h2>
+          <div className="empty-state-icon">
+            <Plane className="w-6 h-6" />
+          </div>
+          <h2 className="empty-state-title">No trips yet</h2>
           <p className="empty-state-desc">
-            Create your first AI-powered travel itinerary!
+            Your saved itineraries will live here. Start with your first one.
           </p>
-          <Link href="/create-new-trip" className="header-btn-primary" style={{ textDecoration: "none", display: "inline-flex" }}>
-            Create a Trip
+          <Link href="/create-new-trip" className="header-btn-primary">
+            Plan a trip
           </Link>
         </div>
       ) : (
@@ -126,23 +128,26 @@ export default function MyTripsPage() {
 
       {/* Confirmation Modal */}
       {confirmDeleteId && (
-        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-card text-card-foreground border border-border w-full max-w-sm rounded-2xl shadow-xl p-6 transform transition-all shadow-black/20">
-            <h3 className="text-xl font-bold mb-2">Delete Trip</h3>
-            <p className="text-muted-foreground mb-6">
+        <div
+          className="fixed inset-0 z-[2000] flex items-center justify-center p-4"
+          style={{ background: "rgba(22, 32, 31, 0.55)" }}
+        >
+          <div className="bg-card text-card-foreground border border-border w-full max-w-sm rounded-md p-6">
+            <h3 className="text-2xl mb-2">Delete trip</h3>
+            <p className="text-muted-foreground mb-6 text-sm leading-relaxed">
               Are you sure you want to delete this trip permanently? This action cannot be undone.
             </p>
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setConfirmDeleteId(null)}
-                className="px-4 py-2 border border-border rounded-xl font-medium hover:bg-muted transition-colors"
+                className="px-4 py-2 border border-border rounded-md text-sm font-medium hover:bg-muted transition-colors"
                 disabled={deletingId !== null}
               >
                 Cancel
               </button>
               <button
                 onClick={handleConfirmDelete}
-                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium flex items-center gap-2 transition-colors disabled:opacity-50"
+                className="px-4 py-2 bg-destructive hover:opacity-90 text-white rounded-md text-sm font-medium flex items-center gap-2 transition-opacity disabled:opacity-50"
                 disabled={deletingId !== null}
               >
                 {deletingId ? (
