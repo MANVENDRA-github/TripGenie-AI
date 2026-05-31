@@ -1,61 +1,110 @@
 "use client";
 
 import React, { useState } from "react";
-import { Mail, MapPin, Send } from "lucide-react";
+import { Mail, Send, Check } from "lucide-react";
 
 export default function ContactPage() {
   const [sent, setSent] = useState(false);
 
   return (
-    <div className="min-h-screen pt-28 pb-12 px-4 sm:px-6 lg:px-8 bg-background">
-      <div className="max-w-3xl mx-auto">
-        <h1 className="text-4xl font-bold text-center mb-4 text-foreground">Contact Us</h1>
-        <p className="text-center text-muted-foreground mb-12">
-          Have questions about TripGenie AI? We'd love to hear from you. Check our pricing or reach out directly!
-        </p>
+    <div className="min-h-screen bg-background px-6 pt-32 pb-24 sm:px-8">
+      <div className="mx-auto max-w-2xl">
+        {/* Header */}
+        <div>
+          <span className="kicker">Contact</span>
+          <h1 className="mt-4 text-4xl sm:text-5xl">
+            Say <span className="serif-em">hello.</span>
+          </h1>
+          <p className="mt-5 text-base leading-relaxed text-muted-foreground">
+            Questions about TripGenie AI, feedback, or a partnership idea? Write
+            to us — a real person reads every message.
+          </p>
+        </div>
 
-        <div className="flex justify-center mb-12">
-          <div className="bg-card border border-border rounded-xl p-6 flex flex-col items-center text-center shadow-sm w-full max-w-md">
-            <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/40 rounded-full flex items-center justify-center mb-4 text-blue-600 dark:text-blue-400">
-              <Mail className="w-6 h-6" />
-            </div>
-            <h3 className="font-semibold text-lg mb-2 text-foreground">Email Address</h3>
-            <p className="text-muted-foreground mb-4">Drop us an email anytime and we will get back to you within 24 hours.</p>
-            <a href="mailto:mksingh5904@gmail.com" className="text-blue-500 font-medium hover:underline mt-auto">
+        {/* Email line */}
+        <div className="mt-12 flex items-center gap-4 border-y border-border py-6">
+          <span
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border"
+            style={{ color: "var(--brand)" }}
+          >
+            <Mail className="h-5 w-5" />
+          </span>
+          <div>
+            <p className="text-sm text-muted-foreground">Email us directly</p>
+            <a
+              href="mailto:mksingh5904@gmail.com"
+              className="text-base font-medium text-foreground underline-offset-4 hover:underline"
+            >
               mksingh5904@gmail.com
             </a>
           </div>
         </div>
 
-        <div className="bg-card border border-border rounded-xl p-8 shadow-sm">
-          <h2 className="text-2xl font-bold mb-6 text-foreground">Send us a message</h2>
-          
+        {/* Form */}
+        <div className="mt-12">
+          <h2 className="text-2xl">Send a message</h2>
+
           {sent ? (
-            <div className="bg-green-500/10 border border-green-500/20 text-green-700 dark:text-green-400 p-4 rounded-lg flex items-center gap-3">
-              <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white shrink-0">
-                ✓
-              </div>
-              <p>Thanks for reaching out! We received your message and will respond shortly.</p>
+            <div className="mt-6 flex items-center gap-3 rounded-md border border-border bg-muted p-5">
+              <span
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+                style={{ background: "var(--brand)", color: "var(--paper)" }}
+              >
+                <Check className="h-4 w-4" />
+              </span>
+              <p className="text-sm leading-relaxed text-foreground">
+                Thanks for reaching out — your message is in. We&apos;ll get back
+                to you within a day.
+              </p>
             </div>
           ) : (
-            <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); setSent(true); }}>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <form
+              className="mt-6 space-y-5"
+              onSubmit={(e) => {
+                e.preventDefault();
+                setSent(true);
+              }}
+            >
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">First Name</label>
-                  <input required placeholder="Your name" className="w-full bg-background border border-border rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none" />
+                  <label className="block text-sm font-medium text-foreground">
+                    Name
+                  </label>
+                  <input
+                    required
+                    placeholder="Your name"
+                    className="w-full rounded-md border border-border bg-background px-4 py-2.5 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-foreground"
+                  />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Email</label>
-                  <input required type="email" placeholder="you@example.com" className="w-full bg-background border border-border rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none" />
+                  <label className="block text-sm font-medium text-foreground">
+                    Email
+                  </label>
+                  <input
+                    required
+                    type="email"
+                    placeholder="you@example.com"
+                    className="w-full rounded-md border border-border bg-background px-4 py-2.5 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-foreground"
+                  />
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Message</label>
-                <textarea required rows={5} placeholder="How can we help?" className="w-full bg-background border border-border rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none resize-none"></textarea>
+                <label className="block text-sm font-medium text-foreground">
+                  Message
+                </label>
+                <textarea
+                  required
+                  rows={5}
+                  placeholder="How can we help?"
+                  className="w-full resize-none rounded-md border border-border bg-background px-4 py-2.5 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-foreground"
+                />
               </div>
-              <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg px-4 py-3 flex items-center justify-center gap-2 transition-all">
-                <Send className="w-4 h-4" />
-                Send Message
+              <button
+                type="submit"
+                className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-5 py-3 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+              >
+                <Send className="h-4 w-4" />
+                Send message
               </button>
             </form>
           )}
