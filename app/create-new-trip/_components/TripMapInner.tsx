@@ -73,10 +73,11 @@ function TripMapInner({ markers = [], center = [20, 0], zoom = 2, className = ""
     markers.forEach((m) => {
       if (!m.lat || !m.lng || isNaN(m.lat) || isNaN(m.lng)) return;
 
+      // On-palette marker triad: teal hotels, gold activities, rust destination.
       const color =
-        m.type === "hotel" ? "#6366f1" :
-        m.type === "activity" ? "#f59e0b" :
-        "#ef4444";
+        m.type === "hotel" ? "#1f6e6a" :
+        m.type === "activity" ? "#c78b2c" :
+        "#b0513a";
 
       const customIcon = L.divIcon({
         className: "custom-map-marker",
