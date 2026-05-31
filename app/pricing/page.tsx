@@ -1,105 +1,147 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { Check } from "lucide-react";
+
+type Tier = {
+  name: string;
+  blurb: string;
+  price: string;
+  period: string;
+  features: string[];
+  cta: string;
+  href: string;
+  featured?: boolean;
+};
+
+const tiers: Tier[] = [
+  {
+    name: "Free",
+    blurb: "For the occasional traveler.",
+    price: "₹0",
+    period: "/mo",
+    features: [
+      "Up to 5 AI itineraries",
+      "Interactive map view",
+      "Arcjet rate limiting",
+    ],
+    cta: "Start free",
+    href: "/create-new-trip",
+  },
+  {
+    name: "Premium",
+    blurb: "For people who are always planning the next one.",
+    price: "₹1,200",
+    period: "/mo",
+    features: [
+      "Unlimited AI itineraries",
+      "Premium hotel recommendations",
+      "Export to PDF & calendar",
+      "Arcjet bot protection & shield",
+    ],
+    cta: "Go Premium",
+    href: "/create-new-trip",
+    featured: true,
+  },
+  {
+    name: "Agency",
+    blurb: "For studios planning on behalf of others.",
+    price: "₹4,000",
+    period: "/mo",
+    features: [
+      "Everything in Premium",
+      "White-label itineraries",
+      "Priority email support",
+    ],
+    cta: "Contact sales",
+    href: "/contact-us",
+  },
+];
 
 export default function PricingPage() {
   return (
-    <div className="min-h-screen pt-28 pb-12 px-4 sm:px-6 lg:px-8 bg-background">
-      <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-16">
-          <h1 className="text-4xl font-bold mb-4 text-foreground">Simple, Transparent Pricing</h1>
-          <p className="text-xl text-muted-foreground">
-            Protected by Arcjet. Choose the plan that fits your travel needs.
+    <div className="min-h-screen bg-background px-6 pt-32 pb-24 sm:px-8">
+      <div className="mx-auto max-w-5xl">
+        {/* Header */}
+        <div className="max-w-2xl">
+          <span className="kicker">Plans</span>
+          <h1 className="mt-4 text-4xl sm:text-5xl">
+            Simple pricing,{" "}
+            <span className="serif-em">no surprises.</span>
+          </h1>
+          <p className="mt-5 text-base leading-relaxed text-muted-foreground">
+            Every plan is protected by Arcjet. Pick the one that fits how often
+            you wander — change it whenever you like.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 justify-center">
-          {/* Free Tier */}
-          <div className="bg-card border border-border rounded-2xl p-8 flex flex-col shadow-sm">
-            <h3 className="text-2xl font-bold mb-2 text-foreground">Free</h3>
-            <p className="text-muted-foreground mb-6">For casual travelers</p>
-            <div className="text-4xl font-bold mb-6 text-foreground">
-              ₹0<span className="text-xl font-normal text-muted-foreground">/mo</span>
-            </div>
-            <ul className="space-y-4 mb-8 flex-1">
-              <li className="flex items-center gap-3 text-muted-foreground">
-                <Check className="w-5 h-5 text-blue-500" />
-                <span>Up to 5 AI Trip Itineraries</span>
-              </li>
-              <li className="flex items-center gap-3 text-muted-foreground">
-                <Check className="w-5 h-5 text-blue-500" />
-                <span>Basic Map Interactive View</span>
-              </li>
-              <li className="flex items-center gap-3 text-muted-foreground">
-                <Check className="w-5 h-5 text-blue-500" />
-                <span>Arcjet Rate Limiting</span>
-              </li>
-            </ul>
-            <button className="w-full py-3 px-4 rounded-xl font-medium border border-border text-foreground hover:bg-muted transition-colors">
-              Get Started Free
-            </button>
-          </div>
+        {/* Tiers */}
+        <div className="mt-16 grid grid-cols-1 gap-px overflow-hidden rounded-md border border-border bg-border md:grid-cols-3">
+          {tiers.map((tier) => (
+            <div
+              key={tier.name}
+              className="flex flex-col bg-card p-8"
+            >
+              <div className="flex items-baseline justify-between">
+                <h2 className="text-2xl">{tier.name}</h2>
+                {tier.featured && (
+                  <span className="kicker" style={{ fontSize: "0.62rem" }}>
+                    Most chosen
+                  </span>
+                )}
+              </div>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                {tier.blurb}
+              </p>
 
-          {/* Pro Tier */}
-          <div className="bg-card border-2 border-blue-500 rounded-2xl p-8 flex flex-col shadow-lg relative transform md:-translate-y-4">
-            <div className="absolute top-0 right-0 bg-blue-500 text-white px-3 py-1 rounded-bl-lg rounded-tr-xl text-sm font-medium">
-              Most Popular
-            </div>
-            <h3 className="text-2xl font-bold mb-2 text-foreground">Arcjet Premium</h3>
-            <p className="text-muted-foreground mb-6">For travel enthusiasts</p>
-            <div className="text-4xl font-bold mb-6 text-foreground">
-              ₹1200<span className="text-xl font-normal text-muted-foreground">/mo</span>
-            </div>
-            <ul className="space-y-4 mb-8 flex-1">
-              <li className="flex items-center gap-3 text-foreground">
-                <Check className="w-5 h-5 text-blue-500" />
-                <span>Unlimited AI Trip Itineraries</span>
-              </li>
-              <li className="flex items-center gap-3 text-foreground">
-                <Check className="w-5 h-5 text-blue-500" />
-                <span>Premium Hotel Recommendations</span>
-              </li>
-              <li className="flex items-center gap-3 text-foreground">
-                <Check className="w-5 h-5 text-blue-500" />
-                <span>Export to PDF/Calendar</span>
-              </li>
-              <li className="flex items-center gap-3 text-foreground">
-                <Check className="w-5 h-5 text-blue-500" />
-                <span>Arcjet Bot Protection & Shield</span>
-              </li>
-            </ul>
-            <button className="w-full py-3 px-4 rounded-xl font-medium bg-blue-600 hover:bg-blue-700 text-white transition-colors shadow-sm shadow-blue-500/20">
-              Upgrade to Premium
-            </button>
-          </div>
+              <div className="mt-7 flex items-baseline gap-1">
+                <span className="font-serif text-5xl tracking-tight text-foreground">
+                  {tier.price}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  {tier.period}
+                </span>
+              </div>
 
-          {/* Enterprise Tier */}
-          <div className="bg-card border border-border rounded-2xl p-8 flex flex-col shadow-sm">
-            <h3 className="text-2xl font-bold mb-2 text-foreground">Agency</h3>
-            <p className="text-muted-foreground mb-6">For travel businesses</p>
-            <div className="text-4xl font-bold mb-6 text-foreground">
-              ₹4000<span className="text-xl font-normal text-muted-foreground">/mo</span>
+              <div
+                className="my-7 h-px w-full"
+                style={{ background: "var(--line)" }}
+              />
+
+              <ul className="flex-1 space-y-3.5">
+                {tier.features.map((feature) => (
+                  <li
+                    key={feature}
+                    className="flex items-start gap-3 text-sm leading-snug text-foreground"
+                  >
+                    <Check
+                      className="mt-0.5 h-4 w-4 shrink-0"
+                      style={{ color: "var(--brand)" }}
+                    />
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <Link
+                href={tier.href}
+                className={`mt-9 inline-flex items-center justify-center rounded-md px-5 py-3 text-sm font-medium transition-colors ${
+                  tier.featured
+                    ? "bg-primary text-primary-foreground hover:opacity-90"
+                    : "border border-border text-foreground hover:bg-muted"
+                }`}
+                style={{ textDecoration: "none" }}
+              >
+                {tier.cta}
+              </Link>
             </div>
-            <ul className="space-y-4 mb-8 flex-1">
-              <li className="flex items-center gap-3 text-muted-foreground">
-                <Check className="w-5 h-5 text-blue-500" />
-                <span>Everything in Premium</span>
-              </li>
-              <li className="flex items-center gap-3 text-muted-foreground">
-                <Check className="w-5 h-5 text-blue-500" />
-                <span>White-label Itineraries</span>
-              </li>
-              <li className="flex items-center gap-3 text-muted-foreground">
-                <Check className="w-5 h-5 text-blue-500" />
-                <span>Priority Email Support</span>
-              </li>
-            </ul>
-            <button className="w-full py-3 px-4 rounded-xl font-medium border border-border text-foreground hover:bg-muted transition-colors">
-              Contact Sales
-            </button>
-          </div>
+          ))}
         </div>
+
+        <p className="mt-10 text-sm text-muted-foreground">
+          Prices in INR. Taxes calculated at checkout where applicable.
+        </p>
       </div>
     </div>
   );
