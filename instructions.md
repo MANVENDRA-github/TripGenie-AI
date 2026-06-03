@@ -50,7 +50,20 @@ ARCJET_KEY=ajkey_xxxx
 | `OPENROUTER_API_KEY` | https://openrouter.ai/keys |
 | `ARCJET_KEY` | https://app.arcjet.com (optional) |
 
-### 3. Start Convex
+### 3. Connect Convex to Clerk (required)
+
+Convex functions authorize the caller via Clerk's token. Without this, signed-in
+mutations throw and trips won't save:
+
+1. Clerk dashboard → **JWT Templates** → new template named exactly `convex`,
+   with an `email` claim mapped to `{{user.primary_email_address}}`.
+2. Register the issuer (your Clerk Frontend API URL) with Convex:
+
+```bash
+npx convex env set CLERK_JWT_ISSUER_DOMAIN https://<your-app>.clerk.accounts.dev
+```
+
+### 4. Start Convex
 
 Open a **separate terminal** and run:
 
@@ -59,11 +72,11 @@ npx convex dev
 ```
 
 This will:
-- Sync your schema to Convex cloud
+- Sync your schema (and indexes) to Convex cloud
 - Watch for changes to `convex/` files
 - Generate types in `convex/_generated/`
 
-### 4. Start Next.js
+### 5. Start Next.js
 
 ```bash
 npm run dev
@@ -101,6 +114,12 @@ npx convex deploy
 
 This deploys your Convex schema and functions to production. Use the production URL for `NEXT_PUBLIC_CONVEX_URL` in Vercel.
 
+In your **production** Clerk instance, create the `convex` JWT template (with the `email` claim) and point the production Convex deployment at it:
+
+```bash
+npx convex env set CLERK_JWT_ISSUER_DOMAIN https://<your-prod>.clerk.accounts.dev --prod
+```
+
 ### 5. Deploy
 
 Click "Deploy" in Vercel. It will build and deploy automatically.
@@ -111,7 +130,7 @@ Click "Deploy" in Vercel. It will build and deploy automatically.
 
 ### Flow:
 1. User chats in the planner interface
-2. Each message is sent to `POST /api/aimodel` with the full conversation history
+2. Each message is sent to `POST /api/aimodel` with the full conversation history (requires a signed-in user; rate-limited per user via Arcjet; payload is validated)
 3. The backend forwards the conversation to OpenRouter's GPT-4.1-mini with a system prompt
 4. Two modes:
    - **Chat mode** (`isFinal: false`): AI asks one question at a time, returns a UI hint for rendering generative UI components
@@ -119,7 +138,7 @@ Click "Deploy" in Vercel. It will build and deploy automatically.
 5. The trip JSON is validated, saved to Convex, and the user is redirected to the trip view page
 
 ### Changing the AI model:
-Edit `app/api/aimodel/route.tsx` — change the `model` field:
+Edit `app/api/aimodel/route.ts` — change the `model` field:
 
 ```typescript
 model: 'openai/gpt-4.1-mini',  // Change to any OpenRouter model
