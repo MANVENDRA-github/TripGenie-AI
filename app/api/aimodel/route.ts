@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 import OpenAI from 'openai';
+import { aj, ajConfigured } from '@/lib/arcjet';
 
 const openai = new OpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
@@ -60,7 +62,7 @@ JSON Schema:
       {
         "hotel_name": "string",
         "hotel_address": "string",
-        "price_per_night": "string (e.g. '$120')",
+        "price_per_night": "string (e.g. '₹120')",
         "geo_coordinates": { "latitude": 0.0, "longitude": 0.0 },
         "rating": 4.5,
         "description": "string (1-2 sentences)"
@@ -87,8 +89,63 @@ JSON Schema:
   }
 }`;
 
+// Guardrails on the client-supplied conversation, so a caller can't smuggle in
+// system messages or send an oversized payload to run up token costs.
+const MAX_MESSAGES = 40;
+const MAX_TOTAL_CHARS = 24_000;
+
+type ChatMessage = { role: 'user' | 'assistant'; content: string };
+
+function validateMessages(input: unknown): ChatMessage[] | null {
+  if (!Array.isArray(input) || input.length === 0 || input.length > MAX_MESSAGES) {
+    return null;
+  }
+  let total = 0;
+  const clean: ChatMessage[] = [];
+  for (const m of input) {
+    if (!m || typeof m !== 'object') return null;
+    const { role, content } = m as Record<string, unknown>;
+    // Only user/assistant turns are accepted — the system prompt is fixed below.
+    if (role !== 'user' && role !== 'assistant') return null;
+    if (typeof content !== 'string') return null;
+    total += content.length;
+    if (total > MAX_TOTAL_CHARS) return null;
+    clean.push({ role, content });
+  }
+  return clean;
+}
+
 export async function POST(req: NextRequest) {
-  const { messages, isFinal, maxDays } = await req.json();
+  // Authenticated users only. Middleware already enforces this for /api/*;
+  // re-checking here is defense in depth and gives us a stable rate-limit key.
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Per-user rate limit — protects the OpenRouter budget from runaway loops.
+  if (ajConfigured) {
+    const decision = await aj.protect(req, { userId, requested: 1 });
+    if (decision.isDenied()) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please slow down and try again shortly.' },
+        { status: 429 }
+      );
+    }
+  }
+
+  let body: any;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
+  const { isFinal, maxDays } = body ?? {};
+  const messages = validateMessages(body?.messages);
+  if (!messages) {
+    return NextResponse.json({ error: 'Invalid messages payload' }, { status: 400 });
+  }
 
   // Enforce the plan's trip-length cap during final generation. `maxDays` is
   // supplied by the client; once subscriptions are billed this should be
@@ -132,9 +189,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(parsed);
   } catch (e: any) {
+    // Log the detail server-side; don't leak internal error messages to the client.
     console.error('AI API Error:', e);
     return NextResponse.json(
-      { error: 'Failed to generate response', details: e.message },
+      { error: 'Failed to generate response' },
       { status: 500 }
     );
   }
