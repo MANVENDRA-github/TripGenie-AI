@@ -54,6 +54,11 @@
 :root {
   --radius: 0.375rem;
 
+  /* — Layout: fluid container + gutters (responsive across all widths) — */
+  --page-max: 1360px;        /* main marketing / app content width */
+  --page-max-narrow: 1180px; /* reading width: trip view + my trips   */
+  --gutter: clamp(1.15rem, 3.5vw, 3rem); /* side padding that scales   */
+
   /* — Editorial palette (light / "sand") — */
   --paper: #f4f2ea;
   --paper-deep: #ebe8dc;
@@ -124,9 +129,9 @@
 
 .dark {
   /* — Editorial palette (deep teal / "night sand") — */
-  --paper: #0f1a19;
-  --paper-deep: #16221f;
-  --paper-deeper: #1d2c29;
+  --paper: #14211f;
+  --paper-deep: #1b2926;
+  --paper-deeper: #223330;
   --ink: #eae5d6;
   --ink-70: rgba(234, 229, 214, 0.74);
   --ink-50: rgba(234, 229, 214, 0.55);
@@ -172,7 +177,7 @@
   --hero-muted2: var(--ink-50);
   --card-bg: var(--paper-deep);
   --card-border: var(--line);
-  --header-bg: rgba(15, 26, 25, 0.9);
+  --header-bg: rgba(20, 33, 31, 0.9);
   --header-text: var(--ink);
   --header-muted: var(--ink-70);
   --app-bg: var(--paper);
@@ -233,7 +238,7 @@
   position: fixed;
   top: 0; left: 0; right: 0;
   z-index: 1000;
-  padding: 1rem 1.5rem;
+  padding: 1rem var(--gutter);
   transition: background 0.3s ease, border-color 0.3s ease;
   border-bottom: 1px solid transparent;
 }
@@ -248,7 +253,7 @@
 }
 
 .header-inner {
-  max-width: 1240px;
+  max-width: var(--page-max);
   margin: 0 auto;
   display: flex;
   align-items: center;
@@ -338,15 +343,15 @@
 /* Hero */
 .lp-hero {
   position: relative;
-  padding: 9rem 1.5rem 4rem;
+  padding: clamp(7.5rem, 13vh, 9.5rem) var(--gutter) clamp(3.5rem, 7vh, 5rem);
   border-bottom: 1px solid var(--line);
 }
 .lp-hero-inner {
-  max-width: 1240px;
+  max-width: var(--page-max);
   margin: 0 auto;
   display: grid;
   grid-template-columns: 1.05fr 0.95fr;
-  gap: 4rem;
+  gap: clamp(2.5rem, 5vw, 4.5rem);
   align-items: center;
 }
 .lp-eyebrow {
@@ -455,9 +460,9 @@
 
 /* Generic editorial section */
 .lp-section {
-  max-width: 1240px;
+  max-width: var(--page-max);
   margin: 0 auto;
-  padding: 6rem 1.5rem;
+  padding: clamp(3.75rem, 7vw, 6rem) var(--gutter);
 }
 .lp-section-head {
   max-width: 720px;
@@ -569,10 +574,10 @@
 .landing-footer {
   background: var(--ink);
   color: var(--paper);
-  padding: 4rem 1.5rem 2rem;
+  padding: clamp(3rem, 6vw, 4rem) var(--gutter) 2rem;
 }
 .footer-inner {
-  max-width: 1240px;
+  max-width: var(--page-max);
   margin: 0 auto;
 }
 .footer-top {
@@ -582,7 +587,7 @@
   gap: 2rem;
   flex-wrap: wrap;
   padding-bottom: 3rem;
-  border-bottom: 1px solid rgba(244, 242, 234, 0.16);
+  border-bottom: 1px solid color-mix(in srgb, var(--paper) 16%, transparent);
 }
 .footer-brand {
   font-family: var(--font-display), Georgia, serif;
@@ -604,11 +609,11 @@
   font-size: 0.7rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgba(244, 242, 234, 0.5);
+  color: color-mix(in srgb, var(--paper) 62%, transparent);
   margin-bottom: 0.25rem;
 }
 .footer-links a {
-  color: rgba(244, 242, 234, 0.8);
+  color: color-mix(in srgb, var(--paper) 88%, transparent);
   text-decoration: none;
   font-size: 0.92rem;
   transition: color 0.2s;
@@ -620,7 +625,7 @@
   align-items: center;
   padding-top: 1.75rem;
   font-size: 0.8rem;
-  color: rgba(244, 242, 234, 0.5);
+  color: color-mix(in srgb, var(--paper) 62%, transparent);
   flex-wrap: wrap;
   gap: 0.5rem;
 }
@@ -632,6 +637,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   height: 100vh;
+  height: 100dvh;
   padding-top: 69px;
   overflow: hidden;
   background: var(--app-bg);
@@ -650,7 +656,14 @@
 }
 
 /* Chat */
-.chat-container { display: flex; flex-direction: column; height: 100%; }
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  max-width: 780px;   /* keep the conversation readable on wide panels */
+  margin: 0 auto;
+}
 .chat-empty-state { padding: 2.5rem 1.75rem; }
 .chat-messages {
   flex: 1;
@@ -823,9 +836,9 @@
    TRIP VIEW PAGE
    ========================================================================== */
 .trip-page {
-  max-width: 1080px;
+  max-width: var(--page-max-narrow);
   margin: 0 auto;
-  padding: 7rem 1.5rem 4rem;
+  padding: 7rem var(--gutter) 4rem;
   min-height: 100vh;
   background: var(--app-bg);
   color: var(--app-text);
@@ -990,7 +1003,7 @@
 .activity-chip.time { color: var(--ink); }
 
 .trip-map-container {
-  height: 420px; border-radius: var(--radius);
+  height: clamp(300px, 45vh, 460px); border-radius: var(--radius);
   overflow: hidden; border: 1px solid var(--line); margin-bottom: 3rem;
 }
 
@@ -998,8 +1011,8 @@
    MY TRIPS PAGE
    ========================================================================== */
 .my-trips-page {
-  max-width: 1080px; margin: 0 auto;
-  padding: 7rem 1.5rem 4rem;
+  max-width: var(--page-max-narrow); margin: 0 auto;
+  padding: 7rem var(--gutter) 4rem;
   min-height: 100vh; color: var(--app-text);
 }
 .my-trips-title {
@@ -1075,22 +1088,56 @@
 /* ==========================================================================
    RESPONSIVE
    ========================================================================== */
+/* Large screens — widen the measure so the extra room isn't stranded
+   in the side margins (addresses "too much empty space on the sides"). */
+@media (min-width: 1700px) {
+  :root {
+    --page-max: 1520px;
+    --page-max-narrow: 1280px;
+  }
+}
+
+/* Small laptops / large tablets */
+@media (max-width: 1100px) {
+  .lp-dest-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
 @media (max-width: 960px) {
   .lp-hero-inner { grid-template-columns: 1fr; gap: 3rem; }
   .lp-hero { padding-top: 7.5rem; }
-  .lp-dest-grid { grid-template-columns: repeat(2, 1fr); }
   .lp-steps { grid-template-columns: 1fr; }
   .lp-step { padding-right: 0 !important; }
 }
+
+/* Tablet portrait — stack the planner: scrollable chat on top, map below */
 @media (max-width: 768px) {
-  .planner-layout { grid-template-columns: 1fr; }
-  .planner-map-panel { height: 40vh; }
-  .planner-chat-panel { height: 60vh; }
+  .planner-layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1fr) minmax(0, 40dvh);
+  }
+  .planner-chat-panel {
+    border-right: none;
+    border-bottom: 1px solid var(--app-border);
+  }
+  .planner-map-panel { min-height: 0; }
   .header-nav { display: none; }
   .footer-top { flex-direction: column; }
 }
+
 @media (max-width: 560px) {
-  .lp-hero-gallery { grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+  .lp-hero-gallery { gap: 0.75rem; }
   .lp-dest-grid { grid-template-columns: 1fr; }
   .footer-bottom { flex-direction: column; gap: 0.75rem; text-align: center; }
+  .footer-links { gap: 2rem; }
+  .trip-route { gap: 0.5rem; }
+  .trip-meta { gap: 0.75rem 1.25rem; }
+}
+
+/* Phones — reclaim side padding for content */
+@media (max-width: 460px) {
+  .chat-messages,
+  .chat-empty-state { padding-left: 1.1rem; padding-right: 1.1rem; }
+  .chat-input-area { padding-left: 1rem; padding-right: 1rem; }
+  .lp-hero-actions { gap: 1rem; }
+  .lp-btn-primary { padding: 0.9rem 1.4rem; }
 }
