@@ -138,7 +138,7 @@ export default function Home() {
         <div className="lp-section-head">
           <span className="kicker">Where people go</span>
           <h2 className="lp-section-title">
-            Six cities to start. Anywhere on earth to finish.
+            Anywhere on earth, planned in minutes.
           </h2>
         </div>
 
