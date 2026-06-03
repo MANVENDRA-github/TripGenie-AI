@@ -86,9 +86,14 @@ function TripMapInner({ markers = [], center = [20, 0], zoom = 2, className = ""
         iconAnchor: [8, 8],
       });
 
+      // Build the popup from a text node so AI-generated labels can never inject
+      // HTML/script (Leaflet renders a raw string as HTML — this avoids XSS).
+      const popupEl = document.createElement("strong");
+      popupEl.textContent = m.label;
+
       L.marker([m.lat, m.lng], { icon: customIcon })
         .addTo(map)
-        .bindPopup(`<strong>${m.label}</strong>`);
+        .bindPopup(popupEl);
 
       bounds.extend([m.lat, m.lng]);
     });
