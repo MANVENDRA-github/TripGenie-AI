@@ -88,7 +88,15 @@ JSON Schema:
 }`;
 
 export async function POST(req: NextRequest) {
-  const { messages, isFinal } = await req.json();
+  const { messages, isFinal, maxDays } = await req.json();
+
+  // Enforce the plan's trip-length cap during final generation. `maxDays` is
+  // supplied by the client; once subscriptions are billed this should be
+  // verified server-side rather than trusted from the request body.
+  let systemPrompt = isFinal ? FINAL_PROMPT : PROMPT;
+  if (isFinal && typeof maxDays === 'number' && maxDays > 0) {
+    systemPrompt += `\n\nDURATION CAP (highest priority): The user's plan allows a maximum of ${maxDays} days. The "itinerary" array MUST contain at most ${maxDays} day objects and "duration" MUST NOT exceed ${maxDays} days, even if the conversation mentioned a longer trip. If a longer trip was requested, plan the best possible ${maxDays}-day version instead.`;
+  }
 
   try {
     const completion = await openai.chat.completions.create({
@@ -97,7 +105,7 @@ export async function POST(req: NextRequest) {
       messages: [
         {
           role: 'system',
-          content: isFinal ? FINAL_PROMPT : PROMPT,
+          content: systemPrompt,
         },
         ...messages,
       ],
