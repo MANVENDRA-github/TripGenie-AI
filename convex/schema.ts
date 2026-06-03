@@ -7,7 +7,7 @@ export default defineSchema({
         imageUrl: v.string(),
         email: v.string(),
         subscription: v.optional(v.string()),
-    }),
+    }).index("by_email", ["email"]),
     TripsTable: defineTable({
         userId: v.string(),
         tripData: v.string(),
@@ -17,5 +17,5 @@ export default defineSchema({
         budget: v.string(),
         groupSize: v.string(),
         createdAt: v.number(),
-    }),
+    }).index("by_userId", ["userId"]),
 })

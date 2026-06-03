@@ -28,7 +28,7 @@
 | **Maps** | Leaflet + OpenStreetMap | 100% free, no API key required |
 | **Animations** | Framer Motion (`motion`) | Landing page animations, staggered reveals |
 | **Font** | Outfit (Google Fonts) | Loaded via `next/font/google` |
-| **Rate Limiting** | Arcjet | Token bucket rate limiting on API routes |
+| **Rate Limiting** | Arcjet | Per-user token-bucket limiting on the AI endpoint (optional, enabled when `ARCJET_KEY` is set) |
 | **Deployment** | Vercel (free tier) | Auto-deploys from Git |
 
 ---
@@ -46,8 +46,7 @@ TripGenie-AI/
 │   │   ├── CinematicHero.tsx                  # Canvas particles, gradient orbs, hero content
 │   │   └── FeaturesSection.tsx                # Feature cards with glass effect
 │   ├── api/
-│   │   ├── aimodel/route.tsx                  # AI endpoint — chat + trip generation
-│   │   └── arcjet/route.ts                    # Rate limiting endpoint
+│   │   └── aimodel/route.ts                   # AI endpoint — Clerk auth + rate limit + input validation + chat/trip generation
 │   ├── create-new-trip/
 │   │   ├── page.tsx                           # Planner layout (chat + map split)
 │   │   └── _components/
@@ -63,8 +62,8 @@ TripGenie-AI/
 │   │   └── page.tsx                           # Full trip view (header, map, hotels, itinerary)
 │   ├── my-trips/
 │   │   └── page.tsx                           # Grid of saved trips
-│   ├── ConvexClientProvider.tsx               # Convex + Provider wrapper
-│   ├── provider.tsx                           # User auto-creation + context
+│   ├── ConvexClientProvider.tsx               # ConvexProviderWithClerk wrapper (forwards Clerk token to Convex)
+│   ├── provider.tsx                           # User auto-creation + UserDetailContext (no longer renders Header)
 │   ├── layout.tsx                             # Root layout (Clerk, Convex, Leaflet CSS, fonts)
 │   ├── page.tsx                               # Landing page
 │   └── globals.css                            # All styles — Tailwind theme + cinematic + app CSS
@@ -74,16 +73,20 @@ TripGenie-AI/
 ├── context/
 │   └── UserDetailContext.tsx                  # React context for user details
 ├── convex/
-│   ├── schema.ts                              # DB schema (UserTable + TripsTable)
-│   ├── user.ts                                # CreateNewUser mutation
-│   ├── trips.ts                               # saveTrip, getUserTrips, getTripById
+│   ├── schema.ts                              # DB schema + indexes (UserTable.by_email, TripsTable.by_userId)
+│   ├── auth.config.ts                         # Clerk JWT provider config — enables ctx.auth.getUserIdentity()
+│   ├── utils.ts                               # requireEmail(ctx) — resolves caller from the verified token
+│   ├── user.ts                                # CreateNewUser mutation (email derived server-side)
+│   ├── trips.ts                               # saveTrip, getUserTrips, getTripById, deleteTrip (auth + ownership)
 │   └── _generated/                            # Auto-generated Convex types
 ├── hooks/
 │   └── use-outside-click.tsx                  # Click outside hook
 ├── lib/
-│   └── utils.ts                               # cn() utility (clsx + tailwind-merge)
+│   ├── utils.ts                               # cn() utility (clsx + tailwind-merge)
+│   ├── plans.ts                               # Per-tier trip-length caps (maxTripDaysFor)
+│   └── arcjet.ts                              # Shared per-user Arcjet rate-limit client
 ├── middleware.ts                               # Clerk route protection
-├── next.config.ts                             # Next.js config (image domains)
+├── next.config.ts                             # Next.js config (image domains + security headers)
 ├── package.json
 ├── tsconfig.json
 └── claude.md                                  # This file
@@ -101,11 +104,25 @@ User visits site → Clerk middleware checks route
 │   → Redirects to sign-in if not authenticated
 │
 After sign-in:
-├── provider.tsx fires useEffect
-├── Calls Convex CreateNewUser mutation
-├── If user doesn't exist in UserTable → creates new entry
+├── provider.tsx fires useEffect (syncUser)
+├── Calls Convex CreateNewUser mutation (passes only name + imageUrl)
+├── Convex derives the email from the verified token, not the client
+├── If user doesn't exist in UserTable → creates new entry (idempotent)
 ├── Stores user details in UserDetailContext
 ```
+
+### Convex authorization (IMPORTANT)
+Convex functions are public HTTP endpoints, so the Next.js middleware does **not**
+protect them. Authorization happens **inside** each function:
+- `app/ConvexClientProvider.tsx` uses **`ConvexProviderWithClerk`** so Convex receives the Clerk token.
+- `convex/auth.config.ts` registers Clerk as the identity provider.
+- `convex/utils.ts` → `requireEmail(ctx)` reads `ctx.auth.getUserIdentity()` and is the **only** trusted source of the caller's identity. No function accepts a `userId`/`email` from the client.
+- Ownership is enforced (e.g. `deleteTrip` checks `trip.userId === caller email`).
+- `getTripById` is intentionally left public — trips are shareable by their unguessable document id.
+
+**Required one-time setup** (without it, signed-in mutations throw and trips can't save):
+1. Clerk dashboard → JWT Templates → create a template named exactly **`convex`**, with an `email` claim → `{{user.primary_email_address}}`.
+2. Register the issuer with Convex: `npx convex env set CLERK_JWT_ISSUER_DOMAIN https://<your-app>.clerk.accounts.dev`
 
 ### Environment Variables for Clerk:
 ```
@@ -113,6 +130,8 @@ NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_...
 CLERK_SECRET_KEY=sk_...
 NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
 NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+# Set in the Convex deployment env (not .env.local) — used by convex/auth.config.ts:
+CLERK_JWT_ISSUER_DOMAIN=https://<your-app>.clerk.accounts.dev
 ```
 
 ---
@@ -126,15 +145,17 @@ ChatBox (client) → POST /api/aimodel → OpenRouter API (GPT-4.1-mini) → JSO
 
 ### Two Modes:
 
+- The route requires a signed-in Clerk user (401 otherwise), applies the per-user Arcjet rate limit (429 when exceeded), and validates the `messages` payload — only `user`/`assistant` roles, max 40 messages / 24k chars (400 otherwise). The fixed system prompt is added server-side; clients cannot inject system messages.
+
 #### Mode 1: Conversational (isFinal=false)
 - System prompt instructs AI to ask ONE question at a time in order:
-  1. Source city
-  2. Destination city
+  1. Source / origin city → ui: `none`
+  2. Destination city → ui: `none`
   3. Group size → renders `GroupSizeUi` component
   4. Budget → renders `BudgetUi` component
   5. Trip duration → renders `SelectDaysUi` component
-  6. Interests
-  7. Special preferences
+  6. Confirm + generate → ui: `final`
+- Interests and special preferences are intentionally skipped.
 - Response format: `{ "resp": "text", "ui": "budget|groupSize|tripDuration|final|none" }`
 - The `ui` field triggers "generative UI" — inline React components rendered in the chat
 
@@ -182,13 +203,15 @@ ChatBox (client) → POST /api/aimodel → OpenRouter API (GPT-4.1-mini) → JSO
 ```
 
 ### Error Handling:
+- `401` unauthenticated, `429` rate-limited, `400` invalid/oversized payload
 - JSON parsing with try/catch
 - Fallback regex extraction if response wrapped in markdown
-- Structured error responses with status codes
+- Structured error responses with status codes (internal error details are logged server-side, never returned to the client)
 
-### Environment Variable:
+### Environment Variables:
 ```
 OPENROUTER_API_KEY=sk-or-v1-...
+ARCJET_KEY=ajkey_...   # optional — enables per-user rate limiting on this route
 ```
 
 ---
@@ -206,7 +229,7 @@ OPENROUTER_API_KEY=sk-or-v1-...
 ### TripsTable
 | Field | Type | Description |
 |---|---|---|
-| userId | string | User's email (links to UserTable) |
+| userId | string | Owner's email, derived server-side from the verified Clerk token (links to UserTable) |
 | tripData | string | Full AI response JSON stringified |
 | destination | string | Trip destination (denormalized for display) |
 | origin | string | Trip origin (denormalized) |
@@ -215,16 +238,22 @@ OPENROUTER_API_KEY=sk-or-v1-...
 | groupSize | string | Group size description |
 | createdAt | number | Unix timestamp |
 
-### Convex Functions:
-- `trips.saveTrip` — mutation: saves a new trip
-- `trips.getUserTrips` — query: gets all trips for a user, ordered desc by creation
-- `trips.getTripById` — query: gets a single trip by its Convex ID
-- `user.CreateNewUser` — mutation: creates user if not exists (idempotent)
+### Indexes:
+- `UserTable.by_email` (["email"]) — used by `CreateNewUser`
+- `TripsTable.by_userId` (["userId"]) — used by `getUserTrips`
+
+### Convex Functions (all auth-gated via `requireEmail` unless noted):
+- `trips.saveTrip` — mutation: saves a new trip; `userId` is the caller's email (server-derived), not a client arg
+- `trips.getUserTrips` — query: gets the caller's own trips (no `userId` arg), ordered desc by creation
+- `trips.getTripById` — query: gets a single trip by its Convex ID (**public** — shareable by link)
+- `trips.deleteTrip` — mutation: deletes a trip only if the caller owns it
+- `user.CreateNewUser` — mutation: creates the caller's user row if absent (idempotent); takes `name` + `imageUrl`, email is server-derived
 
 ### Environment Variable:
 ```
 NEXT_PUBLIC_CONVEX_URL=https://your-project.convex.cloud
 ```
+(Plus `CLERK_JWT_ISSUER_DOMAIN` set in the Convex deployment env — see §4.)
 
 ---
 
@@ -233,10 +262,11 @@ NEXT_PUBLIC_CONVEX_URL=https://your-project.convex.cloud
 - **Library**: Leaflet + OpenStreetMap (100% free, no API key)
 - **Import Strategy**: Dynamic import with `ssr: false` — Leaflet requires DOM
 - **Marker Types**:
-  - 🟣 Purple: Hotels
-  - 🟡 Yellow: Activities
-  - 🔴 Red: Destination
+  - 🟢 Teal (`#1f6e6a`): Hotels
+  - 🟡 Gold (`#c78b2c`): Activities
+  - 🔴 Rust (`#b0513a`): Destination
 - **Auto-bounds**: Map auto-fits to show all markers with padding
+- **Popups**: Labels are rendered via a text node (not raw HTML) so AI-generated names can't inject markup/XSS
 - **Leaflet CSS**: Loaded via CDN in `layout.tsx` `<head>` tag
 
 ---
@@ -293,18 +323,17 @@ Middleware (`middleware.ts`) uses Clerk's `createRouteMatcher` to define public 
    - Text responses + ui hints (budget/groupSize/tripDuration)
    - Generative UI components render inline
 6. After all inputs collected → AI returns ui:"final"
-7. ChatBox detects "final" → sets isFinal=true → sends "Ok, Great!"
+7. ChatBox detects "final" → triggers a single generateTrip() pass (appends "Ok, Great!")
 8. API calls OpenRouter with FINAL_PROMPT + full chat history
 9. AI returns trip_plan JSON (hotels + itinerary with geo coords)
 10. ChatBox:
-    - Saves trip to Convex (trips.saveTrip)
-    - Extracts markers from geo_coordinates
-    - Navigates to /trip/[tripId]
+    - Saves trip to Convex (trips.saveTrip — owner derived server-side)
+    - Navigates to /trip/[tripId] (markers are rebuilt on the trip page from geo_coordinates)
 11. Trip page:
     - Fetches trip from Convex by ID
     - Parses tripData JSON
     - Renders header, map, hotels, day-by-day itinerary
-12. User can revisit via /my-trips (fetches all trips for their email)
+12. User can revisit via /my-trips (fetches the caller's own trips — identity-scoped server-side)
 ```
 
 ---
@@ -315,7 +344,7 @@ Middleware (`middleware.ts`) uses Clerk's `createRouteMatcher` to define public 
 - `prefers-reduced-motion` media query disables particles
 - Leaflet loaded via dynamic import (no SSR)
 - Leaflet CSS via CDN (avoids webpack bundling issues)
-- AI max_tokens: 1500 for chat, 4000 for final generation
+- AI max_tokens: 800 for chat, 6000 for final generation
 - Convex queries are real-time reactive (no polling needed)
 
 ---
@@ -338,15 +367,21 @@ CLERK_SECRET_KEY=sk_test_...
 NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
 NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
 OPENROUTER_API_KEY=sk-or-v1-...
-ARCJET_KEY=ajkey_...  # optional
+ARCJET_KEY=ajkey_...  # optional — enables per-user rate limiting
 
-# 4. Start Convex dev server (in separate terminal)
+# 4. Wire Convex auth to Clerk (one-time)
+#   a. Clerk dashboard → JWT Templates → new template named exactly "convex",
+#      with an `email` claim mapped to {{user.primary_email_address}}
+#   b. Register the issuer with Convex:
+npx convex env set CLERK_JWT_ISSUER_DOMAIN https://<your-app>.clerk.accounts.dev
+
+# 5. Start Convex dev server (in separate terminal) — also pushes schema/indexes
 npx convex dev
 
-# 5. Start Next.js dev server
+# 6. Start Next.js dev server
 npm run dev
 
-# 6. Open http://localhost:3000
+# 7. Open http://localhost:3000
 ```
 
 ---
@@ -357,14 +392,15 @@ npm run dev
 2. Import project in Vercel dashboard
 3. Add all environment variables from `.env.local` to Vercel → Settings → Environment Variables
 4. Set Convex deployment URL to production (run `npx convex deploy`)
-5. Deploy — Vercel auto-detects Next.js
+5. In the **production** Clerk instance, create the `convex` JWT template (with the `email` claim) and set `CLERK_JWT_ISSUER_DOMAIN` on the production Convex deployment (`npx convex env set ... --prod`)
+6. Deploy — Vercel auto-detects Next.js
 
 ---
 
 ## 14. How to Extend
 
 ### Add a new AI feature:
-1. Modify `FINAL_PROMPT` in `/app/api/aimodel/route.tsx`
+1. Modify `FINAL_PROMPT` in `/app/api/aimodel/route.ts`
 2. Update the response JSON schema
 3. Create UI components to render the new data in `/app/trip/[id]/page.tsx`
 
@@ -379,7 +415,7 @@ npm run dev
 3. Run `npx convex dev` to sync schema
 
 ### Change AI model:
-1. Update `model` field in `/app/api/aimodel/route.tsx`
+1. Update `model` field in `/app/api/aimodel/route.ts`
 2. Supported models: any model available on OpenRouter (e.g., `anthropic/claude-3.5-sonnet`, `google/gemini-2.0-flash`)
 
 ---

@@ -10,12 +10,10 @@ import { Id } from "@/convex/_generated/dataModel";
 
 export default function MyTripsPage() {
   const { user } = useUser();
-  const email = user?.primaryEmailAddress?.emailAddress ?? "";
 
-  const trips = useQuery(
-    api.trips.getUserTrips,
-    email ? { userId: email } : "skip"
-  );
+  // The owner is resolved server-side from the verified token; no userId is
+  // sent from the client. Skip the query until the user is loaded.
+  const trips = useQuery(api.trips.getUserTrips, user ? {} : "skip");
   
   const deleteTripMutation = useMutation(api.trips.deleteTrip);
   const [deletingId, setDeletingId] = useState<Id<"TripsTable"> | null>(null);

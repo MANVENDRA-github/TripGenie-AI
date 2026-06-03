@@ -42,6 +42,11 @@ ARCJET_KEY=ajkey_...
 ## 4. Deploy Content
 1. Click **Deploy**. Vercel will build and deploy your application.
 2. If the build fails because of Convex schema mismatches, run `npx convex deploy` from your local terminal to push the finalized schema to Convex production.
+3. **Connect Convex auth to Clerk (required).** In your production Clerk instance, create a JWT template named exactly `convex` (with an `email` claim → `{{user.primary_email_address}}`), then point the production Convex deployment at its issuer:
+   ```bash
+   npx convex env set CLERK_JWT_ISSUER_DOMAIN https://<your-prod>.clerk.accounts.dev --prod
+   ```
+   Without this, `ctx.auth.getUserIdentity()` is null and signed-in users can't save or list trips.
 
 ## 5. Post-Deployment Optimization
 - **Custom Domain**: Go to Vercel Settings > Domains to attach a `.com` or customized domain name.

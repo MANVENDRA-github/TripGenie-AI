@@ -17,7 +17,15 @@ function GroupSizeUi({ onSelectedOption }: any) {
           <div
             key={index}
             className="gen-card"
+            role="button"
+            tabIndex={0}
             onClick={() => onSelectedOption(item.title)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onSelectedOption(item.title);
+              }
+            }}
           >
             <Icon className="w-5 h-5 gen-card-icon" />
             <h2 className="gen-card-title">{item.title}</h2>

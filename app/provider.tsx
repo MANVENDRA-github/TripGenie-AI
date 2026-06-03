@@ -1,55 +1,42 @@
-"use client"
-import React, { use, useContext, useState } from 'react'
-import Header from './_components/Header';
-import { mutation } from '@/convex/_generated/server';
-import { useMutation } from 'convex/react';
-import { api } from '@/convex/_generated/api';
-import { useUser } from '@clerk/nextjs';
-import { useEffect } from 'react';
-import { CreateNewUser } from '@/convex/user';
-import { User } from 'lucide-react';
-import { UserDetailContext } from '@/context/UserDetailContext';
+"use client";
+
+import React, { useCallback, useContext, useEffect, useState } from "react";
+import { useMutation } from "convex/react";
+import { useUser } from "@clerk/nextjs";
+import { api } from "@/convex/_generated/api";
+import { UserDetailContext } from "@/context/UserDetailContext";
 
 function Provider({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-
-  const  CreateUser = useMutation(api.user.CreateNewUser);
-
+  const createUser = useMutation(api.user.CreateNewUser);
   const [userDetails, setUserDetails] = useState<any>();
+  const { user } = useUser();
 
-  const {user} = useUser();
-
-  useEffect(()=>{
-    user&& CreateNewUser();
-  },[user])
-
-  const CreateNewUser = async () => {
-    if (user){
-    //save new user to convex db if not exists
-    const result = await CreateUser({
-      email:user?.primaryEmailAddress?.emailAddress ??"",
-      imageUrl:user?.imageUrl,
-      name:user?.fullName ??""
+  const syncUser = useCallback(async () => {
+    if (!user) return;
+    // The user's email/identity is derived server-side from the verified Clerk
+    // token; we only pass display fields here.
+    const result = await createUser({
+      name: user.fullName ?? "",
+      imageUrl: user.imageUrl ?? "",
     });
     setUserDetails(result);
-    }
-  }
+  }, [user, createUser]);
+
+  useEffect(() => {
+    syncUser();
+  }, [syncUser]);
 
   return (
-    <UserDetailContext.Provider value={{userDetails, setUserDetails}}>
-      <div>
-          <Header/>   
-        
-      {children}</div>
+    <UserDetailContext.Provider value={{ userDetails, setUserDetails }}>
+      {children}
     </UserDetailContext.Provider>
-  )
+  );
 }
 
-export default Provider
+export default Provider;
 
-export const useUserDetail = ()=>{
-  return useContext(UserDetailContext);
-}
+export const useUserDetail = () => useContext(UserDetailContext);

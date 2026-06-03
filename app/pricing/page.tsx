@@ -32,7 +32,7 @@ const tiers: Tier[] = [
   {
     name: "Premium",
     blurb: "For people who are always planning the next one.",
-    price: "₹1,200",
+    price: "₹440",
     period: "/mo",
     features: [
       "Unlimited AI itineraries",
@@ -47,7 +47,7 @@ const tiers: Tier[] = [
   {
     name: "Agency",
     blurb: "For studios planning on behalf of others.",
-    price: "₹4,000",
+    price: "₹800",
     period: "/mo",
     features: [
       "Everything in Premium",
