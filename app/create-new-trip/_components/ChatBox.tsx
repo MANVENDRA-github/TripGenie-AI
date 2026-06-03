@@ -1,12 +1,14 @@
 "use client";
 
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback, useContext } from "react";
 import { Send } from "lucide-react";
 import axios from "axios";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
+import { UserDetailContext } from "@/context/UserDetailContext";
+import { maxTripDaysFor } from "@/lib/plans";
 
 import EmptyBoxState from "./EmptyBoxState";
 import GroupSizeUi from "./GroupSizeUi";
@@ -44,6 +46,10 @@ function ChatBox({ onMarkersUpdate }: Props) {
   const { user } = useUser();
   const router = useRouter();
 
+  // Cap trip length based on the user's plan (free → 10 days, paid → unlimited).
+  const userDetail = useContext(UserDetailContext);
+  const maxDays = maxTripDaysFor(userDetail?.userDetails?.subscription);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -68,6 +74,7 @@ function ChatBox({ onMarkersUpdate }: Props) {
         const result = await axios.post("/api/aimodel", {
           messages: updatedMessages,
           isFinal: isFinal,
+          maxDays,
         });
 
         if (result?.data?.error) {
@@ -165,7 +172,7 @@ function ChatBox({ onMarkersUpdate }: Props) {
         setLoading(false);
       }
     },
-    [messages, userInput, isFinal, user, saveTrip, router, onMarkersUpdate]
+    [messages, userInput, isFinal, user, saveTrip, router, onMarkersUpdate, maxDays]
   );
 
   // Only render interactive UI for the LAST assistant message that has a UI hint
@@ -186,7 +193,8 @@ function ChatBox({ onMarkersUpdate }: Props) {
 
     if (ui === "budget") return <BudgetUi onSelectedOption={(v: string) => onSend(v)} />;
     if (ui === "groupSize") return <GroupSizeUi onSelectedOption={(v: string) => onSend(v)} />;
-    if (ui === "tripDuration") return <SelectDaysUi onSelectedOption={(v: string) => onSend(v)} />;
+    if (ui === "tripDuration")
+      return <SelectDaysUi onSelectedOption={(v: string) => onSend(v)} maxDays={maxDays} />;
     if (ui === "final") return <FinalUi generating={generating} />;
     return null;
   };
@@ -209,6 +217,7 @@ function ChatBox({ onMarkersUpdate }: Props) {
           .post("/api/aimodel", {
             messages: [...messages, confirmMsg],
             isFinal: true,
+            maxDays,
           })
           .then((result) => {
             if (result?.data?.trip_plan) {
