@@ -8,7 +8,7 @@ export const SelectTravelesList = [
   { id: 4, title: "Friends", desc: "Thrill-seekers", icon: Users, people: "5 to 10 People" },
 ];
 
-function GroupSizeUi({ onSelectedOption }: any) {
+function GroupSizeUi({ onSelectedOption }: { onSelectedOption: (value: string) => void }) {
   return (
     <div className="gen-grid gen-grid--4">
       {SelectTravelesList.map((item, index) => {
