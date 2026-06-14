@@ -4,7 +4,7 @@ import React, { useCallback, useContext, useEffect, useState } from "react";
 import { useMutation } from "convex/react";
 import { useUser } from "@clerk/nextjs";
 import { api } from "@/convex/_generated/api";
-import { UserDetailContext } from "@/context/UserDetailContext";
+import { UserDetailContext, type UserDetails } from "@/context/UserDetailContext";
 
 function Provider({
   children,
@@ -12,7 +12,7 @@ function Provider({
   children: React.ReactNode;
 }>) {
   const createUser = useMutation(api.user.CreateNewUser);
-  const [userDetails, setUserDetails] = useState<any>();
+  const [userDetails, setUserDetails] = useState<UserDetails>();
   const { user } = useUser();
 
   const syncUser = useCallback(async () => {
