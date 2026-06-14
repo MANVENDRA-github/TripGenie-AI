@@ -8,7 +8,7 @@ const suggestions = [
   { title: "Find adventure destinations", icon: Mountain },
 ];
 
-function EmptyBoxState({ onSelectOption }: any) {
+function EmptyBoxState({ onSelectOption }: { onSelectOption: (value: string) => void }) {
   return (
     <div className="mt-2">
       <span className="kicker">Start here</span>
