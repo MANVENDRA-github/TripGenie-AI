@@ -7,7 +7,7 @@ export const SelectBudgetOptions = [
   { id: 3, title: "Luxury", desc: "Don't worry about cost", icon: Gem },
 ];
 
-function BudgetUi({ onSelectedOption }: any) {
+function BudgetUi({ onSelectedOption }: { onSelectedOption: (value: string) => void }) {
   return (
     <div className="gen-grid gen-grid--3">
       {SelectBudgetOptions.map((item, index) => {

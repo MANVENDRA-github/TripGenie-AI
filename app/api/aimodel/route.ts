@@ -134,7 +134,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  let body: any;
+  let body: { isFinal?: boolean; maxDays?: number; messages?: unknown } | null = null;
   try {
     body = await req.json();
   } catch {
@@ -188,7 +188,7 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json(parsed);
-  } catch (e: any) {
+  } catch (e) {
     // Log the detail server-side; don't leak internal error messages to the client.
     console.error('AI API Error:', e);
     return NextResponse.json(
