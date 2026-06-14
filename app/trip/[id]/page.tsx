@@ -5,6 +5,7 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useParams } from "next/navigation";
 import { Id } from "@/convex/_generated/dataModel";
+import type { TripData } from "@/lib/types";
 import {
   Calendar,
   MapPin,
@@ -86,9 +87,9 @@ export default function TripPage() {
     );
   }
 
-  let tripData: any = {};
+  let tripData: TripData = {};
   try {
-    tripData = JSON.parse(trip.tripData);
+    tripData = JSON.parse(trip.tripData) as TripData;
   } catch {
     return (
       <div className="trip-page">
@@ -119,7 +120,7 @@ export default function TripPage() {
 
   // Build markers
   const markers: MapMarker[] = [];
-  plan.hotels?.forEach((h: any) => {
+  plan.hotels?.forEach((h) => {
     if (h.geo_coordinates?.latitude && h.geo_coordinates?.longitude) {
       markers.push({
         lat: h.geo_coordinates.latitude,
@@ -129,8 +130,8 @@ export default function TripPage() {
       });
     }
   });
-  plan.itinerary?.forEach((day: any) => {
-    day.activities?.forEach((a: any) => {
+  plan.itinerary?.forEach((day) => {
+    day.activities?.forEach((a) => {
       if (a.geo_coordinates?.latitude && a.geo_coordinates?.longitude) {
         markers.push({
           lat: a.geo_coordinates.latitude,
@@ -185,7 +186,7 @@ export default function TripPage() {
             Where to stay
           </h2>
           <div className="hotels-grid">
-            {plan.hotels.map((hotel: any, i: number) => (
+            {plan.hotels.map((hotel, i) => (
               <div key={i} className="hotel-card">
                 <div
                   className="hotel-img"
@@ -238,7 +239,7 @@ export default function TripPage() {
             Day by day
           </h2>
 
-          {plan.itinerary.map((day: any, dayIndex: number) => (
+          {plan.itinerary.map((day, dayIndex) => (
             <div key={dayIndex} className="day-section">
               <div className="day-header">
                 <span className="day-badge">Day {day.day}</span>
@@ -251,7 +252,7 @@ export default function TripPage() {
               {day.day_plan && <p className="day-plan-text">{day.day_plan}</p>}
 
               <div className="activities-timeline">
-                {day.activities?.map((activity: any, actIdx: number) => (
+                {day.activities?.map((activity, actIdx) => (
                   <div key={actIdx} className="activity-item">
                     <div className="activity-card">
                       <h4 className="activity-name">{activity.place_name}</h4>
